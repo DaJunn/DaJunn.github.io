@@ -1,11 +1,12 @@
 # Agent Html馆
 
-Agent 生成的单文件 HTML 网页都住这里，`index.html` 是自动生成的总目录（带搜索）。
+Agent 生成的单文件 HTML 网页都住这里。总目录自动生成、一式两份：
+`index.html`＝**公开版**（线上首页，只含非私藏页）；`本地总目录.html`＝**全量版**（含全部 🔒 私藏，仅本地，已 gitignore）。
 
 ## 日常用法
 
 - **新增页面**：把 `.html` 丢进本文件夹 → `python3 build_index.py` 重新生成目录 → 找 Agent 推送上线。
-- **本地打开**：直接双击 `index.html`，点卡片进入各页面。
+- **本地打开**：双击 `本地总目录.html`（全量含私藏）；线上访客只会看到公开版。
 - **线上地址**：https://dajunn.github.io/ （本仓库，推送 main 分支后约 1 分钟自动上线）
 
 ## 公开规则（重要）
@@ -21,7 +22,9 @@ Agent 生成的单文件 HTML 网页都住这里，`index.html` 是自动生成�
 
 | 内容 | 说明 |
 |---|---|
-| `index.html` | 总目录（自动生成，勿手改） |
+| `index.html` | 总目录·公开版（自动生成，勿手改，随仓库上线） |
+| `本地总目录.html` | 总目录·全量版（自动生成，含私藏，已 gitignore） |
+| `miaoda/`（私藏） | 妙搭迁移的应用合集，逐个审查后再放开 |
 | `build_index.py` | 目录生成器：`python3 build_index.py` |
 | `business_*.html` | 经营学习系列（单位经济学 / 现金流 / 增长） |
 | `local_vs_global_optimum.html` | 思维模型演示 |
