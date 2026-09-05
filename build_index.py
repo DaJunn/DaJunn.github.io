@@ -7,6 +7,7 @@
 不认识的文件也能收录：标题取 <title>，说明留空显示文件名。
 """
 import html
+import json
 import os
 import re
 import time
@@ -35,11 +36,40 @@ GROUPS = [  # (组名, 判定函数)
     ("草稿与测试", lambda rel, name: rel.startswith("life_sim/") and (name.startswith("draft_") or name == "test_engine.html")),
 ]
 FALLBACK_GROUP = "其他"
-TAGS = [  # (标签, 判定函数)
-    ("🔒 私藏不上线", lambda rel, name: rel.startswith("life_sim/") or name == "mcn_model.html"),
+TAGS = [  # (标签, 判定函数)——「私藏」态由 .gitignore 决定，不在这里写死
     ("草稿", lambda rel, name: name.startswith("draft_")),
     ("测试", lambda rel, name: name == "test_engine.html"),
 ]
+
+
+def load_private():
+    """读 .gitignore，返回 (精确文件集合, 目录前缀列表)——「私藏不上网」的唯一事实源。"""
+    gi = os.path.join(ROOT, ".gitignore")
+    exact, dirs = set(), []
+    if os.path.exists(gi):
+        for line in open(gi, encoding="utf-8"):
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            if line.endswith("/"):
+                dirs.append(line[:-1])
+            else:
+                exact.add(line)
+    return exact, dirs
+
+
+def is_private(rel_posix, priv):
+    exact, dirs = priv
+    if rel_posix in exact:
+        return True
+    return any(rel_posix == d or rel_posix.startswith(d + "/") for d in dirs)
+
+
+def group_of(rel_posix, name, overrides=None):
+    """分组：groups.json 覆盖 > 内置规则 > 「其他」。"""
+    if overrides and rel_posix in overrides:
+        return overrides[rel_posix]
+    return pick(GROUPS, rel_posix, name) or FALLBACK_GROUP
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 
 
@@ -57,6 +87,15 @@ def pick(groups, rel, name):
 
 
 def main():
+    priv = load_private()
+    ov_path = os.path.join(ROOT, "groups.json")
+    overrides = {}
+    if os.path.exists(ov_path):
+        try:
+            with open(ov_path, encoding="utf-8") as f:
+                overrides = json.load(f)
+        except (OSError, ValueError):
+            overrides = {}
     pages = []
     for dirpath, _dirnames, filenames in os.walk(ROOT):
         for fn in filenames:
@@ -74,8 +113,8 @@ def main():
             m = TITLE_RE.search(text)
             title = html.unescape(m.group(1)).strip() if m else fn
             stat = os.stat(full)
-            group = pick(GROUPS, rel_posix, fn) or FALLBACK_GROUP
-            tag = pick(TAGS, rel_posix, fn) or "成品"
+            group = group_of(rel_posix, fn, overrides)
+            tag = "🔒 私藏不上线" if is_private(rel_posix, priv) else (pick(TAGS, rel_posix, fn) or "成品")
             pages.append({
                 "rel": rel_posix,
                 "name": fn,
