@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""网页馆导航页生成器。
+"""agent html馆 导航页生成器。
 
 扫描本文件夹（含子目录）里所有 .html，自动生成本馆总目录 index.html。
 以后新增页面：把 html 文件丢进本文件夹（或子文件夹），然后跑:
@@ -179,7 +179,7 @@ def main():
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>我的网页馆 · 总目录</title>
+<title>agent html馆 · 总目录</title>
 <style>
   :root {{ --ink:#1a1d29; --sub:#6b7280; --line:#e5e7eb; --accent:#4f46e5; --bg:#f6f7fb; }}
   * {{ box-sizing:border-box; margin:0; padding:0; }}
@@ -220,7 +220,7 @@ def main():
 <body>
 <div class="wrap">
   <header>
-    <h1>我的<em>网页馆</em></h1>
+    <h1>agent <em>html馆</em></h1>
     <div class="summary">{summary}</div>
   </header>
   <div class="bar">
