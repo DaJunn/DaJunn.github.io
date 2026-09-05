@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>直播电商经营驾驶舱 · 单位经济学 / 现金流跑道 / 增长曲线</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(249,115,22,.12), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(244,63,94,.10), transparent 55%),
+      radial-gradient(1200px 600px at 50% 110%, rgba(139,92,246,.07), transparent 60%),
+      #f5f6fa;
+    color: #1e293b; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  .topnav {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; justify-content: center; flex-wrap: wrap; gap: 8px;
+    padding: 10px 12px; margin: -32px -16px 6px;
+    background: rgba(245,246,250,.88); backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(15,23,42,.06);
+  }
+  .topnav a {
+    text-decoration: none; color: #334155; font-size: 13.5px; font-weight: 600;
+    padding: 7px 14px; border-radius: 999px; background: #fff; border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 4px rgba(15,23,42,.05); transition: all .15s;
+  }
+  .topnav a:hover { transform: translateY(-1px); border-color: #fda4af; color: #e11d48; }
+  header { text-align: center; margin-bottom: 10px; }
+  h1 { font-size: clamp(24px, 4.2vw, 32px); background: linear-gradient(90deg,#f59e0b,#ef4444 55%,#db2777); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { margin-top: 8px; color: #64748b; font-size: 15px; line-height: 1.7; }
+  section { scroll-margin-top: 64px; }
+  .mod-head { margin: 34px 2px 14px; padding-left: 14px; border-left: 5px solid #10b981; }
+  .mod-head.c2 { border-left-color: #2563eb; }
+  .mod-head.c3 { border-left-color: #8b5cf6; }
+  .mod-head h2 { font-size: 21px; }
+  .mod-head p { margin-top: 6px; color: #64748b; font-size: 14.5px; line-height: 1.6; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(15,23,42,.07); padding: 18px; margin-bottom: 18px; }
+  .card h2 { font-size: 19px; margin-bottom: 4px; }
+  .card .desc { color: #64748b; font-size: 14px; margin-bottom: 12px; line-height: 1.6; }
+  canvas { width: 100%; height: clamp(280px, 42vw, 400px); display: block; }
+  #cvA, #cvB { height: clamp(260px, 40vw, 360px); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { flex: 1 1 auto; min-width: 108px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 8px 12px; text-align: center; }
+  .chip .k { font-size: 12px; color: #64748b; }
+  .chip .v { font-size: 16.5px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .chip.g .v { color: #059669; } .chip.a .v { color: #d97706; } .chip.r .v { color: #e11d48; }
+  .chip.b .v { color: #2563eb; } .chip.p .v { color: #7c3aed; } .chip.pk .v { color: #db2777; }
+  .verdict { margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-size: 14.5px; line-height: 1.7; transition: all .2s; }
+  .verdict.g { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+  .verdict.a { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+  .verdict.r { background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; }
+  .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 20px; }
+  .ctl label { font-size: 13.5px; color: #475569; display: flex; flex-direction: column; gap: 6px; }
+  .ctl .row { display: flex; justify-content: space-between; gap: 6px; }
+  .ctl b { color: #e11d48; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ctl input { width: 100%; accent-color: #ef4444; }
+  #controlsA .ctl b, #controlsB .ctl b { color: #8b5cf6; }
+  #controlsA .ctl input, #controlsB .ctl input { accent-color: #8b5cf6; }
+  .presets { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button { border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; padding: 7px 13px; border-radius: 10px; font-size: 13.5px; cursor: pointer; font-family: inherit; transition: all .15s; }
+  .presets button:hover { background: #fff1f2; border-color: #fda4af; transform: translateY(-1px); }
+  .formula { font-size: 14px; line-height: 1.9; color: #475569; }
+  .formula b { color: #1e293b; }
+  .formula code { background:#f1f5f9; padding: 1px 7px; border-radius: 6px; color: #047857; font-size: 13.5px; }
+  .tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 10px; margin-top: 14px; }
+  .tips > div { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  .tips b { color: #1e293b; }
+  .info { font-size: 14px; line-height: 1.9; color: #475569; }
+  .info b { color: #1e293b; }
+  .key { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 10px; margin-top: 14px; }
+  .key > div { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  .key b { color: #1e293b; }
+  .tinybtn { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+  .tinybtn button { border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; padding: 6px 12px; border-radius: 9px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .tinybtn button:hover { background: #f5f3ff; border-color: #ddd6fe; }
+  .tinybtn .note { font-size: 12.5px; color: #94a3b8; }
+  .foot { font-size: 13.5px; color: #64748b; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; line-height: 1.8; margin-top: 12px; }
+  .foot b { color: #1e293b; }
+  footer { text-align: center; color: #94a3b8; font-size: 13px; margin-top: 18px; line-height: 1.8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="topnav">
+    <a href="#sec-unit">🎯 ① 单位经济学 LTV vs CAC</a>
+    <a href="#sec-cash">💰 ② 现金流跑道</a>
+    <a href="#sec-growth">🚀 ③ 增长曲线</a>
+  </nav>
+
+  <header>
+    <h1>直播电商经营驾驶舱</h1>
+    <p class="sub">把三张经典商业模型搬进直播间：一个买家值不值钱（LTV vs CAC）· 现金撑不撑得到转正那天（跑道）· 增长怎么滚起来（投流复投 & 自传播系数）。全部滑杆可拖，实时出结论。</p>
+  </header>
+
+  <!-- ================================================================ -->
+  <!-- 模块一：单位经济学 LTV vs CAC（直播电商版）                        -->
+  <!-- ================================================================ -->
+  <section id="sec-unit">
+    <div class="mod-head">
+      <h2>🎯 ① 单位经济学：一个买家值不值钱</h2>
+      <p>每拉一个买家花多少钱（CAC = 投流 + 坑位费），这个买家一辈子能贡献多少毛利（LTV）—— 决定这个直播间 / 这个品牌能不能长期做。</p>
+    </div>
+
+    <div class="card">
+      <canvas id="cv"></canvas>
+      <div class="chips" id="chips"></div>
+      <div class="verdict" id="verdict">拖动滑杆，看看这笔直播生意到底赚不赚钱。</div>
+      <div class="controls">
+        <div class="ctl"><label><span class="row"><span>客单价（元/单）</span><b id="v_aov"></b></span><input type="range" id="aov" min="10" max="2000" step="1" value="99"></label></div>
+        <div class="ctl"><label><span class="row"><span>月购买频次（单/月）</span><b id="v_freq"></b></span><input type="range" id="freq" min="0.1" max="8" step="0.1" value="1.2"></label></div>
+        <div class="ctl"><label><span class="row"><span>商品毛利率（扣成本/退货/佣金）</span><b id="v_margin"></b></span><input type="range" id="margin" min="5" max="80" step="1" value="40"></label></div>
+        <div class="ctl"><label><span class="row"><span>月流失率（粉丝/买家流失）</span><b id="v_churn"></b></span><input type="range" id="churn" min="1" max="40" step="0.5" value="10"></label></div>
+        <div class="ctl"><label><span class="row"><span>获客成本 CAC（投流+坑位/人）</span><b id="v_cac"></b></span><input type="range" id="cac" min="5" max="3000" step="5" value="90"></label></div>
+      </div>
+      <div class="presets" id="presets">
+        <button data-preset="brand">🎬 健康品牌自播</button>
+        <button data-preset="white">🛍 挣扎的白牌</button>
+        <button data-preset="burn">🔥 低价冲量买量陷阱</button>
+        <button data-preset="vip">🌟 达人专场脉冲</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="formula">
+        <b>计算公式（直播电商版）</b><br>
+        <code>单客月消费 = 客单价 × 月购买频次</code>　
+        <code>单客月毛利 = 单客月消费 × 商品毛利率</code>　
+        <code>平均生命周期 L = 1 ÷ 月流失率</code>　
+        <code>LTV = 单客月毛利 × L</code><br><br>
+        <b>判读标准（经验法则）：</b>　🟢 <b>LTV/CAC ≥ 3 且回本周期 ≤ 12 个月</b>（直播电商最好 ≤ 3 个月）→ 健康的单位经济；　🟡 1.5 ~ 3 → 勉强，烧钱换增长要克制；　🔴 &lt; 1.5 → 每拉一个买家都在亏钱，投流越猛亏得越快。<br>
+        <b>回本周期</b> = CAC ÷ 单客月毛利：投流的钱花出去后，要多少个月才能从这个买家身上赚回来。
+      </div>
+      <div class="tips">
+        <div><b>📈 想提升 LTV：</b>提客单价（组品搭赠、凑单加购）、提购买频次（上新节奏、会员日、私域召回）、降流失（粉丝团、开播提醒、社群沉淀）——直播电商赚的是复购，留存 +5% 往往比拉新 +20% 更值钱。</div>
+        <div><b>📉 想降低 CAC：</b>憋单拉停留和互动撬动自然推荐（最便宜的流量）、切片短视频引流、粉丝分享裂变；警惕纯投流买量——投流一停，场观归零。</div>
+        <div><b>⚠️ 藏在数字背后的坑：</b>LTV 要按<b>毛利</b>算而不是 GMV（退货率 30%+ 的类目尤其致命，达人佣金、运费险都要扣）；首单往往亏钱，赚的是后面几单；CAC 高时还要看现金跑道撑不撑得到回本（看模块②）。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- 模块二：现金流跑道（直播电商版）                                   -->
+  <!-- ================================================================ -->
+  <section id="sec-cash">
+    <div class="mod-head c2">
+      <h2>💰 ② 现金流跑道：直播间会不会在起飞前断粮</h2>
+      <p>GMV 再漂亮，能花的只有毛利。拨动参数，看你的直播团队会不会在自然流量和复购起飞之前，先被投流和工资烧断现金。</p>
+    </div>
+
+    <div class="card">
+      <canvas id="cvCF"></canvas>
+      <div class="chips" id="chipsCF"></div>
+      <div class="verdict" id="verdictCF">设置好你的直播生意参数，看现金流怎么跑。</div>
+      <div class="controls" id="controlsCF"></div>
+      <div class="presets" id="presetsCF">
+        <button data-preset="brand">🎬 稳健品牌自播</button>
+        <button data-preset="burn">🔥 烧钱投流冲量</button>
+        <button data-preset="dna">🧑‍🎤 达人分销轻资产</button>
+        <button data-preset="dawn">🪤 黎明前断粮</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="info">
+        <b>三个核心概念：</b><br>
+        <b>烧钱率 Burn</b> = 每月总支出 − 每月毛利（负数即每月净烧多少）　·　
+        <b>跑道 Runway</b> = 账上现金 ÷ 每月净烧钱 ≈ 还能活几个月　·　
+        <b>盈亏平衡</b> = 毛利 ≥ 支出的那个月（之后开始自己养活自己）。
+        <br><br>注意口径：直播电商的「收入」是 GMV，但能花的只有毛利 —— 本模型把<b>退货、商品成本、物流、达人佣金</b>都折进「商品毛利率」里。毛利是<b>慢慢爬坡</b>的（老客复购按月积累、账号权重成长），而团队工资、场地、坑位费、投流是<b>当月就要付</b>的 —— 中间的洞只能靠现金填。直播公司第一大死因不是没流量，而是<b>投流烧得比毛利回得快</b>。虚线表示「如果公司能撑到那一天」的毛利/支出走势。
+      </div>
+      <div class="key">
+        <div><b>💡 怎么延长跑道：</b>砍固定成本（缩团队、换小场地）、提高客单价和毛利率（组品、上利润款）、降低单粉投流成本（提升自然流量占比）、提高复购（私域/会员）；或者——更快融资。融资不是「烧」，是<b>买时间</b>，买到盈亏平衡那天。</div>
+        <div><b>⚠️ 亏损 ≠ 会死：</b>前期建号、测品、憋单阶段几乎必亏；只要现金撑到「自然流量 + 复购」把毛利托起来的拐点，就活着。反之 GMV 再漂亮，毛利盖不住支出也只是纸面繁荣。</div>
+        <div><b>🧮 简化假设：</b>本模拟按「每月固定新增成交用户、按流失率衰减」计算（用户数收敛到 新增÷流失），忽略大促脉冲、退货率月度波动、账期和库存垫资，用于建立直觉而非做财务模型。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <!-- 模块三：增长的两条曲线（直播电商版）                               -->
+  <!-- ================================================================ -->
+  <section id="sec-growth">
+    <div class="mod-head c3">
+      <h2>🚀 ③ 增长的两条曲线：复投复利 & 自传播系数 K</h2>
+      <p>复投：利润变预算，规模自己滚雪球；自传播：观众帮你拉观众。两者本质是同一个数学 —— 指数增长。</p>
+    </div>
+
+    <!-- ============ 卡 A：投流复投复利 ============ -->
+    <div class="card">
+      <h2>🔁 复投的复利 <span style="font-size:13px;color:#94a3b8;font-weight:400">利润变投流预算，规模滚雪球</span></h2>
+      <div class="desc">同样的月投流预算，<b>不复投</b>每月只落袋固定一笔利润，<b>复投</b>把利润再变成下个月的投流预算 —— 规模按复利滚。前提只有一个：投流本身赚钱，即 <b>ROI × 毛利率 &gt; 1</b>。</div>
+      <canvas id="cvA"></canvas>
+      <div class="chips" id="chipsA"></div>
+      <div class="verdict" id="verdictA"></div>
+      <div class="controls" id="controlsA"></div>
+      <div class="foot"><b>👑 直播电商的复投复利：</b>投流买的不只是 GMV —— 每一场还在沉淀粉丝、抬账号权重，ROI 会随规模变好；利润复投 = 不稀释股权的「自我融资」。翻倍月数 ≈ <b>70 ÷ 月净赚率(%)</b>（70 法则的月度版）：月净赚率 6% 约 12 个月翻倍，12% 约 6 个月。反过来，一旦 <b>ROI × 毛利率 ≤ 1</b>（每投 1 元毛利不到 1 元），复投就是加速烧钱 —— 复利是中性的，方向错了滚得更快。</div>
+    </div>
+
+    <!-- ============ 卡 B：直播间自传播系数 K ============ -->
+    <div class="card">
+      <h2>📣 直播间自传播系数 K <span style="font-size:13px;color:#94a3b8;font-weight:400">直播间能不能「自己长观众」</span></h2>
+      <div class="desc"><b>K = 每个观众平均带来多少个新观众。</b>每轮：新观众 = 场观 × K，同时有自然流失。当 K 盖过流失率，场观每轮按固定比例放大 —— 直播间从「全靠投流续命」变成「内容自己会长」，这就是爆款直播间的场观曲线。</div>
+      <canvas id="cvB"></canvas>
+      <div class="chips" id="chipsB"></div>
+      <div class="verdict" id="verdictB"></div>
+      <div class="controls" id="controlsB"></div>
+      <div class="tinybtn"><button id="logB">🔁 切换 线性 / 对数 坐标</button><span class="note" id="logNote"></span></div>
+      <div class="foot"><b>🎯 关键阈值：</b>教科书常讲 <b>K &gt; 1 才自增长</b>；本模型还扣除了流失，所以更准确的门槛是 <b>K &gt; 每轮流失率</b>。多数直播间 K 只有 0.1~0.3，全靠投流硬撑 —— 停投场观就跳水；把 K 做到 0.8+（拼团/助力/分享解锁 + 切片分发 + 公域推荐加权），等于给自己装了免费流量引擎。参考：拼多多砍一刀、瑞幸「分享领券」、直播切片二创引流、视频号「点赞 → 推荐给好友」。</div>
+    </div>
+  </section>
+
+  <footer>三个模型连成一句话：先算清一个买家值不值钱（①单位经济）→ 再确认现金撑得到转正那天（②跑道）→ 最后用复投和自传播把增长滚起来（③曲线）。</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ==================================================================
+   * 模块一：单位经济学 LTV vs CAC（直播电商版）
+   * ================================================================== */
+  (function () {
+    var cv = document.getElementById('cv');
+    var ctx = cv.getContext('2d');
+    var chipsEl = document.getElementById('chips');
+    var verdictEl = document.getElementById('verdict');
+    var els = {};
+    ['aov', 'freq', 'margin', 'churn', 'cac'].forEach(function (id) { els[id] = document.getElementById(id); });
+    var vls = {};
+    ['aov', 'freq', 'margin', 'churn', 'cac'].forEach(function (id) { vls[id] = document.getElementById('v_' + id); });
+
+    var M = { l: 60, r: 24, t: 30, b: 44 };
+    var W = 800, H = 400, plotW = 700, plotH = 320;
+
+    function fmtMoney(v) {
+      if (!isFinite(v)) return '∞';
+      if (v >= 10000) return (v / 10000).toFixed(1) + '万';
+      return Math.round(v).toLocaleString('zh-CN');
+    }
+    function fmtRatio(v) { return v.toFixed(2); }
+    function fmtMonths(v) { return isFinite(v) ? v.toFixed(1) : '∞'; }
+
+    function params() {
+      var aov = +els.aov.value;
+      var freq = +els.freq.value;
+      var margin = +els.margin.value / 100;
+      var churn = +els.churn.value / 100;
+      var cac = +els.cac.value;
+      var moSpend = aov * freq;          // 单客月消费
+      var moGP = moSpend * margin;       // 单客月毛利
+      var life = churn > 0 ? 1 / churn : Infinity;
+      var ltv = moGP * life;
+      var ratio = cac > 0 ? ltv / cac : Infinity;
+      var payback = moGP > 0 ? cac / moGP : Infinity;
+      return { aov: aov, freq: freq, margin: margin, churn: churn, cac: cac, moSpend: moSpend, moGP: moGP, life: life, ltv: ltv, ratio: ratio, payback: payback };
+    }
+
+    function verdict(p) {
+      var cls, html;
+      if (p.moGP <= 0) { cls = 'r'; html = '❌ 毛利率为 0，白干。'; }
+      else if (p.payback > p.life) {
+        cls = 'r';
+        html = '🔴 <b>永远赚不回本</b>：回本周期 ' + fmtMonths(p.payback) + ' 个月 &gt; 买家平均生命周期 ' + fmtMonths(p.life) + ' 个月 —— 买家还没替你赚回投流钱就流失了。此时 LTV(' + fmtMoney(p.ltv) + ') &lt; CAC(' + fmtMoney(p.cac) + ')，<b>每拉一个新买家都在净亏钱</b>，投流越猛、亏得越多。建议：提复购、提毛利，或先砍投流。';
+      } else if (p.ratio >= 3 && p.payback <= 12) {
+        cls = 'g';
+        html = '🟢 <b>健康的单位经济</b>：LTV/CAC = ' + fmtRatio(p.ratio) + '（≥3 ✓），回本周期约 ' + fmtMonths(p.payback) + ' 个月（≤12 ✓）。理论上每一块钱获客投入能换回约 ' + fmtRatio(p.ratio) + ' 块钱毛利 —— 可以放心加投流、扩场次，把赚到的钱投回复购和货盘。';
+      } else if (p.ratio >= 1.5) {
+        cls = 'a';
+        var slow = p.payback > 12 ? ' 回本偏慢（' + fmtMonths(p.payback) + ' 个月），意味着现金流压力大（去模块②看看跑道）。' : '';
+        html = '🟡 <b>勉强及格</b>：LTV/CAC = ' + fmtRatio(p.ratio) + '（1.5~3）。' + slow + '投流可以继续，但要盯着指标别恶化；优先提升复购或毛利，把比值推向 3。';
+      } else {
+        cls = 'r';
+        html = '🔴 <b>烧钱陷阱</b>：LTV/CAC 只有 ' + fmtRatio(p.ratio) + '（&lt;1.5）。投流+佣金吃掉太多价值，扩张基本是在「花钱买买家，再亏着发货」。先修单位经济（复购/毛利/CAC），再谈放量。';
+      }
+      return { cls: cls, html: html };
+    }
+
+    function layout() {
+      var dpr = window.devicePixelRatio || 1;
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      plotW = W - M.l - M.r; plotH = H - M.t - M.b;
+      draw();
+    }
+
+    function halo(t, x, y, fill, font, align) {
+      ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineJoin = 'round';
+      ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+    }
+
+    function draw() {
+      var p = params();
+      ctx.clearRect(0, 0, W, H);
+
+      var Mmax = Math.max(12, Math.ceil((isFinite(p.life) ? p.life : 24) * 1.25));
+      if (isFinite(p.payback)) Mmax = Math.max(Mmax, Math.ceil(p.payback) + 4);
+      Mmax = Math.min(Mmax, 120);
+      var yTop = Math.max(p.ltv, p.cac) * 1.3;
+      if (yTop <= 0) yTop = 1;
+
+      function X(m) { return M.l + m / Mmax * plotW; }
+      function Y(v) { return M.t + (1 - v / yTop) * plotH; }
+
+      /* 网格 */
+      ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (var k = 0; k <= 4; k++) {
+        var v = yTop * k / 4, py = Y(v);
+        ctx.strokeStyle = 'rgba(15,23,42,.055)';
+        ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(fmtMoney(v), M.l - 8, py);
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (var xm = 0; xm <= Mmax; xm += Math.max(1, Math.round(Mmax / 10))) {
+        var px = X(xm);
+        ctx.strokeStyle = 'rgba(15,23,42,.05)';
+        ctx.beginPath(); ctx.moveTo(px, H - M.b); ctx.lineTo(px, H - M.b + 4); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(xm + '月', px, H - M.b + 7);
+      }
+      halo('累计毛利/成本（元） →', W - M.r, H - 12, '#94a3b8', '11px sans-serif', 'right');
+      ctx.save(); ctx.translate(13, M.t + plotH / 2); ctx.rotate(-Math.PI / 2);
+      halo('金额 →', 0, 0, '#94a3b8', '11px sans-serif', 'center'); ctx.restore();
+
+      /* 流失区（生命周期之后） */
+      if (isFinite(p.life) && p.life < Mmax) {
+        var lx = X(p.life);
+        ctx.fillStyle = 'rgba(245,158,11,.08)';
+        ctx.fillRect(lx, M.t, W - M.r - lx, plotH);
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(245,158,11,.5)';
+        ctx.beginPath(); ctx.moveTo(lx, M.t); ctx.lineTo(lx, M.t + plotH); ctx.stroke();
+        ctx.setLineDash([]);
+        halo('平均生命周期 L=' + p.life.toFixed(1) + '月', Math.min(lx + plotW * 0.02, W - M.r), M.t + 14, '#b45309', '11px sans-serif', 'left');
+      }
+
+      /* 单买家累计毛利曲线（达到 L 后归平） */
+      ctx.beginPath();
+      var pts = [];
+      var Mdraw = Math.min(Mmax, isFinite(p.life) ? p.life : Mmax);
+      for (var m = 0; m <= Mdraw; m += 0.1) pts.push([X(m), Y(Math.min(m * p.moGP, p.ltv))]);
+      pts.push([X(Mdraw), Y(p.ltv)]);
+      if (isFinite(p.life) && p.life < Mmax) {
+        pts.push([X(Math.max(p.life, 0) + 0.01), Y(p.ltv)]);
+        pts.push([X(Mmax), Y(p.ltv)]);
+      }
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.lineWidth = 3; ctx.strokeStyle = '#10b981'; ctx.lineJoin = 'round'; ctx.stroke();
+
+      /* CAC 水平线 */
+      var cy = Y(p.cac);
+      ctx.setLineDash([7, 5]); ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(M.l, cy); ctx.lineTo(W - M.r, cy); ctx.stroke();
+      ctx.setLineDash([]);
+      halo('CAC = ' + fmtMoney(p.cac), M.l + 6, cy - 12, '#be123c', 'bold 12px sans-serif', 'left');
+
+      /* 回本点 */
+      var pb = Math.ceil(p.payback);
+      if (isFinite(p.payback) && p.payback <= Mmax) {
+        var px2 = X(Math.min(pb, Mmax)), py2 = Y(Math.min(pb * p.moGP, p.ltv));
+        ctx.strokeStyle = 'rgba(16,185,129,.5)'; ctx.setLineDash([3, 3]);
+        ctx.beginPath(); ctx.moveTo(px2, M.t); ctx.lineTo(px2, H - M.b); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(px2, py2, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        halo('回本点 · 第 ' + pb + ' 个月', px2, Math.min(py2 - 16, M.t + plotH - 14), '#047857', 'bold 12px sans-serif');
+      } else if (isFinite(p.payback)) {
+        halo('✗ 超出生命周期，永远回不了本', X(Mmax * 0.45), Y(p.cac) - 16, '#be123c', 'bold 13px sans-serif');
+      }
+
+      /* LTV 标注 */
+      if (isFinite(p.life)) {
+        var lv = Y(p.ltv), lxp = X(Math.min(p.life, Mdraw));
+        ctx.beginPath(); ctx.arc(lxp, lv, 5, 0, Math.PI * 2);
+        ctx.fillStyle = '#059669'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        halo('LTV ≈ ' + fmtMoney(p.ltv), X(Mmax) - 6, Y(p.ltv), '#047857', 'bold 12px sans-serif', 'right');
+      }
+
+      ctx.strokeStyle = 'rgba(15,23,42,.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(M.l, Y(0)); ctx.lineTo(W - M.r, Y(0)); ctx.stroke();
+    }
+
+    function render() {
+      var p = params();
+      vls.aov.textContent = '¥' + fmtMoney(p.aov);
+      vls.freq.textContent = (+els.freq.value).toFixed(1) + ' 次/月';
+      vls.margin.textContent = Math.round(p.margin * 100) + '%';
+      vls.churn.textContent = (+els.churn.value).toFixed(1) + '%/月';
+      vls.cac.textContent = '¥' + fmtMoney(p.cac);
+      var ratioColor = p.ratio >= 3 ? 'g' : (p.ratio >= 1.5 ? 'a' : 'r');
+      var payColor = p.payback <= 12 ? 'g' : (p.payback <= p.life ? 'a' : 'r');
+      chipsEl.innerHTML =
+        '<div class="chip"><div class="k">单客月消费</div><div class="v">¥' + fmtMoney(p.moSpend) + '</div></div>' +
+        '<div class="chip"><div class="k">单客月毛利</div><div class="v">¥' + fmtMoney(p.moGP) + '</div></div>' +
+        '<div class="chip"><div class="k">平均生命周期</div><div class="v">' + fmtMonths(p.life) + ' 月</div></div>' +
+        '<div class="chip ' + ratioColor + '"><div class="k">LTV</div><div class="v">¥' + fmtMoney(p.ltv) + '</div></div>' +
+        '<div class="chip r"><div class="k">CAC</div><div class="v">¥' + fmtMoney(p.cac) + '</div></div>' +
+        '<div class="chip ' + ratioColor + '"><div class="k">LTV / CAC</div><div class="v">' + fmtRatio(p.ratio) + '</div></div>' +
+        '<div class="chip ' + payColor + '"><div class="k">回本周期</div><div class="v">' + fmtMonths(p.payback) + ' 月</div></div>';
+      var v = verdict(p);
+      verdictEl.className = 'verdict ' + v.cls;
+      verdictEl.innerHTML = v.html;
+      draw();
+    }
+
+    var presets = {
+      brand: { aov: 99,  freq: 1.2, margin: 40, churn: 10, cac: 90 },
+      white: { aov: 59,  freq: 0.6, margin: 25, churn: 18, cac: 30 },
+      burn:  { aov: 39,  freq: 0.5, margin: 15, churn: 25, cac: 45 },
+      vip:   { aov: 299, freq: 0.4, margin: 30, churn: 22, cac: 90 }
+    };
+    document.getElementById('presets').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var pr = presets[btn.dataset.preset];
+      if (!pr) return;
+      els.aov.value = pr.aov; els.freq.value = pr.freq; els.margin.value = pr.margin; els.churn.value = pr.churn; els.cac.value = pr.cac;
+      render();
+    });
+
+    ['aov', 'freq', 'margin', 'churn', 'cac'].forEach(function (id) {
+      els[id].addEventListener('input', render);
+    });
+    var rT;
+    window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(layout, 120); });
+
+    layout();
+    render();
+  })();
+
+  /* ==================================================================
+   * 模块二：现金流跑道（直播电商版）
+   * ================================================================== */
+  (function () {
+    var cv = document.getElementById('cvCF');
+    var ctx = cv.getContext('2d');
+    var chipsEl = document.getElementById('chipsCF');
+    var verdictEl = document.getElementById('verdictCF');
+    var controlsEl = document.getElementById('controlsCF');
+
+    var HORIZON = 36; // 模拟 36 个月
+
+    var defs = [
+      { id: 'cf_cash',   label: '期初现金',                       unit: '万元',   min: 10, max: 1000,  step: 10, val: 150 },
+      { id: 'cf_fixed',  label: '月固定支出（团队/场地/坑位费）',   unit: '万元/月', min: 1,  max: 200,   step: 1,  val: 20 },
+      { id: 'cf_spend',  label: '老客月均消费（客单价×频次）',      unit: '元/月',  min: 10, max: 2000,  step: 5,  val: 150 },
+      { id: 'cf_margin', label: '商品毛利率（扣退货/成本/佣金）',   unit: '%',      min: 5,  max: 70,    step: 1,  val: 40 },
+      { id: 'cf_new',    label: '每月新增成交用户',                unit: '人/月',  min: 0,  max: 20000, step: 50, val: 1500 },
+      { id: 'cf_churn',  label: '老客月流失率',                    unit: '%/月',   min: 0.5, max: 30,   step: 0.5, val: 6 },
+      { id: 'cf_cac',    label: '单新客投流成本',                  unit: '元/人',  min: 0,  max: 500,   step: 5,  val: 70 },
+      { id: 'cf_fundM',  label: '融资时点（0=不融资）',            unit: '第x月',  min: 0,  max: 36,    step: 1,  val: 0 },
+      { id: 'cf_fundA',  label: '融资金额',                        unit: '万元',   min: 50, max: 5000,  step: 50, val: 300 }
+    ];
+    var els = {};
+    defs.forEach(function (d) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ctl';
+      wrap.innerHTML = '<label><span class="row"><span>' + d.label + '</span><b id="v_' + d.id + '"></b></span>' +
+        '<input type="range" id="' + d.id + '" min="' + d.min + '" max="' + d.max + '" step="' + d.step + '" value="' + d.val + '"></label>';
+      controlsEl.appendChild(wrap);
+      els[d.id] = wrap.querySelector('input');
+    });
+    var vls = {};
+    defs.forEach(function (d) { vls[d.id] = document.getElementById('v_' + d.id); });
+
+    var M = { l: 58, r: 20, t: 30, b: 44 };
+    var W = 800, H = 400, plotW = 700, plotH = 320;
+
+    function wan(x) { return isFinite(x) ? x.toFixed(1) : '∞'; }
+
+    function simulate() {
+      var cash0 = +els.cf_cash.value;
+      var fixed = +els.cf_fixed.value;                     // 万元/月
+      var moSpend = +els.cf_spend.value / 10000;           // 万元/月/老客
+      var margin = +els.cf_margin.value / 100;
+      var add = +els.cf_new.value;                         // 人/月
+      var churn = +els.cf_churn.value / 100;
+      var cac = +els.cf_cac.value / 10000;                 // 万元/人
+      var fundM = +els.cf_fundM.value, fundA = +els.cf_fundA.value;
+
+      var cash = cash0, members = 0, raised = 0;
+      var history = [], death = -1, be = -1;
+      var minAlive = cash0, minAll = cash0;                // 存活期最低 & 全程最低（融资缺口看全程）
+      for (var m = 1; m <= HORIZON; m++) {
+        members = members * (1 - churn) + add;
+        var gm = members * moSpend * margin;               // 每月毛利（万元）
+        var spend = fixed + add * cac;                     // 每月支出（万元）
+        var net = gm - spend;
+        cash += net;
+        if (m === fundM && fundM > 0 && death < 0) { cash += fundA; raised += fundA; }
+        if (cash < minAll) minAll = cash;
+        if (death < 0) {
+          if (cash < 0) death = m;                         // 断粮月
+          else if (cash < minAlive) minAlive = cash;
+        }
+        if (be < 0 && net >= 0) be = m;                    // 全程找盈亏平衡（死了也算，看“若撑到那天”）
+        history.push({ m: m, cash: cash, gm: gm, spend: spend, net: net });
+      }
+      var endCash = death > 0 ? history[death - 1].cash : cash;
+      return { cash0: cash0, fixed: fixed, add: add, raised: raised, history: history,
+               minAlive: minAlive, minAll: minAll, death: death, be: be, endCash: endCash };
+    }
+
+    function verdict(p) {
+      var cls, html;
+      if (p.death > 0) {
+        cls = 'r';
+        var need = Math.max(0, -p.minAll);
+        if (p.be > 0 && p.be > p.death) {
+          html = '💀 <b>死于黎明前</b>：第 ' + p.death + ' 个月投流烧断了现金，而你的模式其实要撑到第 ' + p.be + ' 个月毛利才能盖住支出 —— 只差现金，不差生意。途中累计最大资金缺口约 <b>¥' + wan(need) + ' 万</b>。试试把「融资时点」拖到第 1~' + Math.max(1, p.death - 1) + ' 个月、金额 ≥ ¥' + Math.ceil(need * 1.15 / 10) * 10 + ' 万，虚线会变成实线。';
+        } else if (p.be > 0) {
+          html = '💀 <b>现金流断裂</b>：第 ' + p.death + ' 个月断粮。虽然第 ' + p.be + ' 个月单月已盈亏平衡，但前期窟窿太深、回填太慢。峰值缺口 ¥' + wan(need) + ' 万 —— 需要更早、更大的融资（试试时点=1、金额拉满）。';
+        } else {
+          html = '💀 <b>现金流断裂</b>：第 ' + p.death + ' 个月断粮，而且 ' + HORIZON + ' 个月内毛利始终盖不住支出 —— <b>模式本身不成立</b>（毛利率 × 复购 扛不起投流 + 固定成本）。这时候融资只是延长死亡，先修单位经济（客单价/毛利率/复购/投流效率）再谈扩张。';
+        }
+      } else if (p.be > 0) {
+        cls = 'g';
+        var fundNote = p.raised > 0 ? '（期间融资 ¥' + wan(p.raised) + ' 万，帮你跨越了亏损期）' : '（没融一分钱）';
+        var near = p.minAlive < p.cash0 * 0.25 ? '不过途中现金最低只剩 ¥' + wan(p.minAlive) + ' 万，贴着悬崖边飞过——投流再猛一点就断粮了。' : '';
+        html = '🟢 <b>活下来了</b>' + fundNote + '：第 ' + p.be + ' 个月毛利开始盖住支出，' + HORIZON + ' 个月期末账上有 <b>¥' + wan(p.endCash) + ' 万</b>。' + near + '跑道的意义：亏损期不是死亡，只要现金撑到「自然流量+复购」的拐点。';
+      } else {
+        cls = 'a';
+        html = '🟡 <b>暂时没死，但模式有问题</b>：账上还有钱（期末 ¥' + wan(p.endCash) + ' 万），可 ' + HORIZON + ' 个月都没实现过单月盈亏平衡 —— 现在靠存量现金撑着，烧完只是时间问题。需要提高客单价/毛利率/复购，或砍固定成本、降投流成本。';
+      }
+      return { cls: cls, html: html };
+    }
+
+    function layout() {
+      var dpr = window.devicePixelRatio || 1;
+      W = cv.clientWidth; H = cv.clientHeight;
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      plotW = W - M.l - M.r; plotH = H - M.t - M.b;
+      draw();
+    }
+
+    function halo(t, x, y, fill, font, align) {
+      ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineJoin = 'round';
+      ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+    }
+
+    function draw() {
+      var p = simulate();
+      ctx.clearRect(0, 0, W, H);
+      var mmax = HORIZON;
+      var death = p.death;
+      var aliveN = death > 0 ? death : HORIZON;       // 现金画到断粮月为止
+
+      /* y 范围 */
+      var lo = 0, hi = p.cash0;
+      for (var i = 0; i < p.history.length; i++) {
+        var r = p.history[i];
+        hi = Math.max(hi, r.gm, r.spend);
+        if (i < aliveN) { hi = Math.max(hi, r.cash); lo = Math.min(lo, r.cash); }
+      }
+      hi *= 1.12; lo = lo < 0 ? lo * 1.18 : 0;
+      if (hi - lo < 1e-6) hi = lo + 1;
+
+      function X(m) { return M.l + m / mmax * plotW; }
+      function Y(v) { return M.t + (1 - (v - lo) / (hi - lo)) * plotH; }
+
+      ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      for (var k = 0; k <= 4; k++) {
+        var v = lo + (hi - lo) * k / 4, py = Y(v);
+        ctx.strokeStyle = 'rgba(15,23,42,.05)';
+        ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(wan(v), M.l - 8, py);
+      }
+      ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      for (var xm = 0; xm <= mmax; xm += Math.max(1, Math.round(mmax / 10))) {
+        var px = X(xm);
+        ctx.strokeStyle = 'rgba(15,23,42,.05)';
+        ctx.beginPath(); ctx.moveTo(px, H - M.b); ctx.lineTo(px, H - M.b + 4); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(xm + '月', px, H - M.b + 7);
+      }
+      halo('时间 →', W - M.r, H - 12, '#94a3b8', '11px sans-serif', 'right');
+      if (lo < 0) {
+        var y0 = Y(0);
+        ctx.strokeStyle = 'rgba(15,23,42,.25)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(M.l, y0); ctx.lineTo(W - M.r, y0); ctx.stroke();
+        ctx.fillStyle = 'rgba(225,29,72,.06)';
+        ctx.fillRect(M.l, y0, plotW, plotH - (y0 - M.t));
+      }
+
+      /* 通用画线：cutIdx 之后用虚线淡画（表示“若撑到那天”） */
+      function drawSeries(key, color, width, cutIdx) {
+        var cut = cutIdx || 0;
+        ctx.beginPath();
+        for (var i = 0; i < p.history.length; i++) {
+          var xx = X(p.history[i].m), yy = Y(p.history[i][key]);
+          if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+          if (i === cut - 1) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .95; ctx.stroke(); ctx.beginPath(); ctx.moveTo(xx, yy); }
+        }
+        if (cut < p.history.length && cut > 0) {      // 虚线段
+          ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .38; ctx.setLineDash([5, 5]);
+          ctx.beginPath();
+          for (var j = cut; j < p.history.length; j++) {
+            var xx2 = X(p.history[j].m), yy2 = Y(p.history[j][key]);
+            if (j === cut) ctx.moveTo(xx2, yy2); else ctx.lineTo(xx2, yy2);
+          }
+          ctx.stroke(); ctx.setLineDash([]);
+        } else {
+          ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .95; ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      drawSeries('gm', '#10b981', 2.4, death);        // 毛利/支出全程画（断粮后虚线）
+      drawSeries('spend', '#f43f5e', 2.4, death);
+
+      /* 现金余额：只画到断粮月为止（实线） */
+      ctx.beginPath();
+      for (var ci = 0; ci < aliveN; ci++) {
+        var cxx = X(p.history[ci].m), cyy = Y(p.history[ci].cash);
+        if (ci === 0) ctx.moveTo(cxx, cyy); else ctx.lineTo(cxx, cyy);
+      }
+      ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3.2; ctx.lineJoin = 'round'; ctx.stroke();
+      halo('现金余额', M.l + 6, Y(Math.max(p.cash0, lo)) - 10, '#1d4ed8', 'bold 12px sans-serif', 'left');
+
+      var last = p.history[HORIZON - 1];
+      halo('毛利', X(HORIZON - 3), Y(last.gm) - 12, '#047857', 'bold 12px sans-serif', 'center');
+      halo('支出', X(HORIZON - 3), Y(last.spend) - 12, '#be123c', 'bold 12px sans-serif', 'center');
+
+      /* 盈亏平衡点（若在模拟期内） */
+      if (p.be > 0) {
+        var bp = X(p.be), bby = Y(p.history[p.be - 1].gm);
+        ctx.beginPath(); ctx.arc(bp, bby, 6, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+        halo(p.be > death && death > 0 ? '盈亏平衡 · 第' + p.be + '月（若撑到）' : '盈亏平衡 · 第' + p.be + '月',
+             Math.min(bp + 12, W - M.r), Math.max(bby - 18, M.t + 12), '#047857', 'bold 12px sans-serif', 'left');
+      }
+
+      /* 融资注入 */
+      if (+els.cf_fundM.value > 0 && p.raised > 0) {
+        var fm = p.history[+els.cf_fundM.value - 1];
+        if (fm) {
+          var fpx = X(fm.m), fpy = Y(Math.max(fm.cash, lo));
+          ctx.strokeStyle = 'rgba(217,119,6,.55)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+          ctx.beginPath(); ctx.moveTo(fpx, M.t); ctx.lineTo(fpx, H - M.b); ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.beginPath();
+          ctx.moveTo(fpx, fpy - 12); ctx.lineTo(fpx + 9, fpy - 2); ctx.lineTo(fpx - 9, fpy - 2); ctx.closePath();
+          ctx.fillStyle = '#d97706'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+          halo('融资 ¥' + wan(+els.cf_fundA.value) + '万', fpx, Math.max(fpy - 20, M.t + 14), '#b45309', 'bold 12px sans-serif');
+        }
+      }
+
+      /* 死亡标记 */
+      if (death > 0) {
+        var dpx = X(death);
+        ctx.strokeStyle = 'rgba(225,29,72,.6)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(dpx, M.t); ctx.lineTo(dpx, H - M.b); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#9f1239';
+        ctx.fillText('💀 断粮', dpx, Math.max(M.t + 14, 20));
+      }
+    }
+
+    function render() {
+      var p = simulate();
+      vls.cf_cash.textContent = wan(p.cash0) + ' 万';
+      vls.cf_fixed.textContent = wan(p.fixed) + ' 万';
+      vls.cf_spend.textContent = Math.round(+els.cf_spend.value) + ' 元';
+      vls.cf_margin.textContent = Math.round(+els.cf_margin.value) + '%';
+      vls.cf_new.textContent = p.add + ' 人';
+      vls.cf_churn.textContent = (+els.cf_churn.value).toFixed(1) + '%';
+      vls.cf_cac.textContent = Math.round(+els.cf_cac.value) + ' 元';
+      vls.cf_fundM.textContent = +els.cf_fundM.value > 0 ? '第 ' + els.cf_fundM.value + ' 月' : '不融资';
+      vls.cf_fundA.textContent = wan(+els.cf_fundA.value) + ' 万';
+
+      var full = p.history[HORIZON - 1];
+      chipsEl.innerHTML =
+        '<div class="chip b"><div class="k">期初现金</div><div class="v">' + wan(p.cash0) + ' 万</div></div>' +
+        '<div class="chip"><div class="k">期末现金</div><div class="v ' + (p.endCash >= 0 ? 'g' : 'r') + '">' + wan(p.endCash) + ' 万</div></div>' +
+        '<div class="chip"><div class="k">第' + HORIZON + '月月毛利</div><div class="v g">' + wan(full.gm) + ' 万</div></div>' +
+        '<div class="chip"><div class="k">月总支出</div><div class="v r">' + wan(p.fixed + p.add * (+els.cf_cac.value) / 10000) + ' 万</div></div>' +
+        '<div class="chip ' + (p.be > 0 ? 'g' : 'a') + '"><div class="k">盈亏平衡(' + HORIZON + '月内)</div><div class="v">' + (p.be > 0 ? '第 ' + p.be + ' 月' : '未达成') + '</div></div>' +
+        '<div class="chip ' + (p.death > 0 ? 'r' : 'g') + '"><div class="k">现金断粮</div><div class="v">' + (p.death > 0 ? '第 ' + p.death + ' 月 💀' : HORIZON + '个月内安全') + '</div></div>' +
+        '<div class="chip ' + (p.minAll < 0 ? 'r' : 'g') + '"><div class="k">最大资金缺口</div><div class="v">' + wan(Math.min(0, p.minAll)) + ' 万</div></div>' +
+        (p.raised > 0 ? '<div class="chip"><div class="k">已融资</div><div class="v b">' + wan(p.raised) + ' 万</div></div>' : '');
+      var v = verdict(p);
+      verdictEl.className = 'verdict ' + v.cls;
+      verdictEl.innerHTML = v.html;
+      draw();
+    }
+
+    var presets = {
+      brand: { cf_cash: 150, cf_fixed: 20, cf_spend: 150, cf_margin: 40, cf_new: 1500, cf_churn: 6,  cf_cac: 70,  cf_fundM: 0, cf_fundA: 300 },
+      burn:  { cf_cash: 300, cf_fixed: 40, cf_spend: 90,  cf_margin: 22, cf_new: 8000, cf_churn: 15, cf_cac: 90,  cf_fundM: 0, cf_fundA: 500 },
+      dna:   { cf_cash: 60,  cf_fixed: 10, cf_spend: 200, cf_margin: 18, cf_new: 2500, cf_churn: 12, cf_cac: 60,  cf_fundM: 0, cf_fundA: 100 },
+      dawn:  { cf_cash: 40,  cf_fixed: 30, cf_spend: 180, cf_margin: 35, cf_new: 1200, cf_churn: 8,  cf_cac: 120, cf_fundM: 0, cf_fundA: 300 }
+    };
+    document.getElementById('presetsCF').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      var pr = presets[btn.dataset.preset];
+      if (!pr) return;
+      defs.forEach(function (d) { els[d.id].value = pr[d.id]; });
+      render();
+    });
+
+    defs.forEach(function (d) { els[d.id].addEventListener('input', render); });
+    var rT;
+    window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(layout, 120); });
+
+    layout();
+    render();
+  })();
+
+  /* ==================================================================
+   * 模块三：增长的两条曲线（直播电商版：复投复利 & 自传播 K）
+   * ================================================================== */
+  (function () {
+    var M = { l: 64, r: 22, t: 30, b: 42 };
+
+    function makeChart(cvid) {
+      var cv = document.getElementById(cvid);
+      var ctx = cv.getContext('2d');
+      var state = { cv: cv, ctx: ctx, W: 800, H: 380, plotW: 700, plotH: 320, yTop: 1, yBot: 0 };
+      state.layout = function () {
+        var dpr = window.devicePixelRatio || 1;
+        state.W = cv.clientWidth; state.H = cv.clientHeight;
+        cv.width = state.W * dpr; cv.height = state.H * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        state.plotW = state.W - M.l - M.r; state.plotH = state.H - M.t - M.b;
+      };
+      state.X = function (m, mmax) { return M.l + m / mmax * state.plotW; };
+      state.Ylin = function (v) { return M.t + (1 - (v - state.yBot) / (state.yTop - state.yBot)) * state.plotH; };
+      state.Ylog = function (v) {
+        var a = Math.log(state.yBot), b = Math.log(state.yTop);
+        return M.t + (1 - (Math.log(Math.max(v, state.yBot)) - a) / (b - a)) * state.plotH;
+      };
+      state.clear = function () { ctx.clearRect(0, 0, state.W, state.H); };
+      state.gridY = function (v, label) {
+        ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        var py = state.Ylin(v);
+        ctx.strokeStyle = 'rgba(15,23,42,.055)';
+        ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(state.W - M.r, py); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(label, M.l - 8, py);
+      };
+      state.gridX = function (m, mmax, label) {
+        ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        var px = state.X(m, mmax);
+        ctx.strokeStyle = 'rgba(15,23,42,.05)';
+        ctx.beginPath(); ctx.moveTo(px, state.H - M.b); ctx.lineTo(px, state.H - M.b + 4); ctx.stroke();
+        ctx.fillStyle = '#94a3b8'; ctx.fillText(label, px, state.H - M.b + 6);
+      };
+      state.halo = function (t, x, y, fill, font, align) {
+        ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+        ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineJoin = 'round';
+        ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+      };
+      return state;
+    }
+
+    function buildControls(id, defs, onchange) {
+      var box = document.getElementById(id);
+      var els = {};
+      defs.forEach(function (d) {
+        var wrap = document.createElement('div');
+        wrap.className = 'ctl';
+        wrap.innerHTML = '<label><span class="row"><span>' + d.label + '</span><b id="v' + id + '_' + d.id + '"></b></span>' +
+          '<input type="range" id="' + id + '_' + d.id + '" min="' + d.min + '" max="' + d.max + '" step="' + d.step + '" value="' + d.val + '"></label>';
+        box.appendChild(wrap);
+        els[d.id] = wrap.querySelector('input');
+        els[d.id].addEventListener('input', onchange);
+      });
+      return els;
+    }
+
+    /* ============ 卡 A：投流复投复利 ============ */
+    var ca = makeChart('cvA');
+    var defsA = [
+      { id: 'i0',     label: '期初月投流预算', unit: '万元/月', min: 1,  max: 100, step: 1,  val: 10 },
+      { id: 'roi',    label: '投流ROI（GMV/投流）', unit: '元/元', min: 1, max: 10, step: 0.1, val: 4 },
+      { id: 'margin', label: '商品毛利率',     unit: '%',      min: 5,  max: 70,  step: 1,  val: 30 },
+      { id: 'alpha',  label: '复投率（利润再投比例）', unit: '%', min: 0, max: 100, step: 5, val: 60 },
+      { id: 't',      label: '模拟月数',       unit: '月',     min: 3,  max: 36,  step: 1,  val: 18 }
+    ];
+    var eA = buildControls('controlsA', defsA, function () { renderA(); });
+    function vA(id) { return +eA[id].value; }
+
+    function fmtW(v) {
+      if (!isFinite(v)) return '∞';
+      if (v >= 10000) return (v / 10000).toFixed(2) + ' 亿';
+      if (v >= 100) return Math.round(v) + ' 万';
+      if (v >= 1) return v.toFixed(1) + ' 万';
+      return Math.round(v * 10000) + ' 元';
+    }
+
+    function renderA() {
+      var I0 = vA('i0'), roi = vA('roi'), m = vA('margin') / 100, alpha = vA('alpha') / 100, T = vA('t');
+      var net = roi * m - 1;                 // 每 1 元投流的月净利（元）
+      var g = alpha * net;                   // 每月复投增长率
+      var comp = I0 * Math.pow(1 + g, T);    // 复投后的月投流规模
+      var doubleM = (g > 0) ? Math.ceil(Math.log(2) / Math.log(1 + g)) : Infinity;
+
+      document.getElementById('vcontrolsA_i0').textContent = fmtW(I0);
+      document.getElementById('vcontrolsA_roi').textContent = roi.toFixed(1);
+      document.getElementById('vcontrolsA_margin').textContent = Math.round(m * 100) + '%';
+      document.getElementById('vcontrolsA_alpha').textContent = Math.round(alpha * 100) + '%';
+      document.getElementById('vcontrolsA_t').textContent = T + ' 月';
+
+      ca.yBot = 0; ca.yTop = Math.max(comp, I0) * 1.12;
+      ca.clear();
+      for (var k = 0; k <= 4; k++) ca.gridY(ca.yTop * k / 4, fmtW(ca.yTop * k / 4));
+      for (var mo = 0; mo <= T; mo += Math.max(1, Math.round(T / 10))) ca.gridX(mo, T, mo + '月');
+      ca.halo('月数 →', ca.W - M.r, ca.H - 12, '#94a3b8', '11px sans-serif', 'right');
+
+      function line(fn, color, width, dashed) {
+        ca.ctx.beginPath();
+        for (var t2 = 0; t2 <= T; t2 += 0.25) {
+          var xx = ca.X(t2, T), yy = ca.Ylin(fn(t2));
+          if (t2 === 0) ca.ctx.moveTo(xx, yy); else ca.ctx.lineTo(xx, yy);
+        }
+        ca.ctx.strokeStyle = color; ca.ctx.lineWidth = width; ca.ctx.lineJoin = 'round';
+        if (dashed) ca.ctx.setLineDash([6, 5]); else ca.ctx.setLineDash([]);
+        ca.ctx.stroke(); ca.ctx.setLineDash([]);
+      }
+      line(function (t2) { return I0 * Math.pow(1 + g, t2); }, '#8b5cf6', 3.2, false); // 复投
+      line(function () { return I0; }, '#94a3b8', 2.2, true);                          // 固定预算
+
+      /* 翻倍点 */
+      if (isFinite(doubleM) && doubleM <= T && 2 * I0 <= ca.yTop) {
+        var dpx = ca.X(doubleM, T), dpy = ca.Ylin(2 * I0);
+        ca.ctx.beginPath(); ca.ctx.arc(dpx, dpy, 6, 0, Math.PI * 2);
+        ca.ctx.fillStyle = '#ec4899'; ca.ctx.fill(); ca.ctx.strokeStyle = '#fff'; ca.ctx.lineWidth = 2; ca.ctx.stroke();
+        ca.halo('规模翻倍 · 第' + doubleM + '月 (70法则≈' + (net > 0 && g > 0 ? Math.max(1, Math.round(70 / (g * 100))) : '—') + ')', dpx, Math.max(dpy - 18, M.t + 12), '#be185d', 'bold 12px sans-serif');
+      }
+      ca.halo('复投(期末 ' + fmtW(comp) + '/月)', ca.X(T, T) - 4, ca.Ylin(Math.min(comp, ca.yTop)), '#6d28d9', 'bold 12px sans-serif', 'right');
+      ca.halo('固定预算 ' + fmtW(I0), M.l + 8, ca.Ylin(I0), '#64748b', 'bold 12px sans-serif', 'left');
+
+      var ratio = I0 > 0 ? comp / I0 : 0;
+      var cls = ratio >= 4 ? 'g' : (ratio >= 1.5 ? 'a' : 'r');
+      document.getElementById('chipsA').innerHTML =
+        '<div class="chip p"><div class="k">复投后月投流规模(期末)</div><div class="v">' + fmtW(comp) + '</div></div>' +
+        '<div class="chip"><div class="k">固定预算(不复投)</div><div class="v">' + fmtW(I0) + '</div></div>' +
+        '<div class="chip ' + cls + '"><div class="k">复投 = 固定的</div><div class="v">' + ratio.toFixed(1) + ' 倍</div></div>' +
+        '<div class="chip ' + (net > 0 ? 'g' : 'r') + '"><div class="k">月净赚率(ROI×毛利率−1)</div><div class="v">' + (net * 100).toFixed(1) + '%</div></div>' +
+        '<div class="chip a"><div class="k">翻倍月数(70法则)</div><div class="v">' + (isFinite(doubleM) ? '≈ ' + doubleM + ' 月' : '不会翻倍') + '</div></div>' +
+        '<div class="chip ' + (net > 0 ? 'g' : 'r') + '"><div class="k">期末月净利</div><div class="v">' + fmtW(comp * net) + '/月</div></div>';
+
+      var v = document.getElementById('verdictA');
+      if (net <= 0) {
+        v.className = 'verdict r';
+        v.innerHTML = '🔴 <b>投流口径在亏钱</b>：ROI × 毛利率 = ' + (roi * m).toFixed(2) + ' ≤ 1，每投 1 元毛利不到 1 元。这时复投 = 放大亏损，烧得更快。先把 ROI 做过盈亏线 <b>' + (m > 0 ? (1 / m).toFixed(1) : '∞') + '</b>（优化素材/人群/憋单节奏），或提毛利率（组品、上利润款），再谈复投。';
+      } else if (ratio >= 4) {
+        v.className = 'verdict g';
+        v.innerHTML = '🟢 <b>复投起飞</b>：' + T + ' 个月把月投流规模从 ' + fmtW(I0) + ' 滚到 <b>' + fmtW(comp) + '</b>（' + ratio.toFixed(1) + ' 倍），期末每月净赚 ' + fmtW(comp * net) + '。利润复投就是自我融资 —— 但记得留现金安全垫，ROI 一掉就把复投率降下来。';
+      } else {
+        v.className = 'verdict a';
+        v.innerHTML = '🟡 <b>缓慢爬坡</b>：' + T + ' 个月后月投流规模只到 ' + fmtW(comp) + '（' + ratio.toFixed(1) + ' 倍）。' + (alpha <= 0 ? '复投率为 0，复利引擎没点火——把利润拿一部分回来再投。' : '提高复投率、拉高 ROI × 毛利率，或者拉长时间——复利需要耐心。');
+      }
+    }
+
+    /* ============ 卡 B：直播间自传播系数 K ============ */
+    var cb = makeChart('cvB');
+    var logMode = false;
+    var defsB = [
+      { id: 'seed',  label: '开播基础场观（种子观众）', unit: '人',    min: 100, max: 100000, step: 100, val: 2000 },
+      { id: 'inv',   label: '每人平均分享次数',   unit: '次/人', min: 0,  max: 5,  step: 0.1, val: 1.5 },
+      { id: 'conv',  label: '分享转化率（点进直播间）', unit: '%',     min: 5,  max: 100, step: 5,  val: 20 },
+      { id: 'churn', label: '每轮自然流失率',  unit: '%/轮',  min: 0,  max: 50,  step: 1,  val: 15 },
+      { id: 'round', label: '传播轮数',      unit: '轮',    min: 1,  max: 36,  step: 1,  val: 15 }
+    ];
+    var eB = buildControls('controlsB', defsB, function () { renderB(); });
+    function vB(id) { return +eB[id].value; }
+
+    function fmtU(n) {
+      if (!isFinite(n)) return '∞';
+      if (n >= 1e12) return (n / 1e12).toFixed(1) + ' 万亿';
+      if (n >= 1e8) return (n / 1e8).toFixed(2) + ' 亿';
+      if (n >= 1e4) return (n / 1e4).toFixed(1) + ' 万';
+      return Math.round(n).toString();
+    }
+
+    function renderB() {
+      var seed = vB('seed'), inv = vB('inv'), conv = vB('conv') / 100, churn = vB('churn') / 100, R = vB('round');
+      var K = inv * conv;
+      var mult = 1 + K - churn;                     // 每轮净乘数
+      var cap = 1e15, blownAt = -1;
+      var data = [{ r: 0, u: seed }];
+      var u = seed;
+      for (var i = 1; i <= R; i++) {
+        u = u * mult;
+        if (u > cap) { u = cap; if (blownAt < 0) blownAt = i; }
+        data.push({ r: i, u: u });
+        if (blownAt > 0) break;
+      }
+      var fin = u;
+
+      document.getElementById('vcontrolsB_seed').textContent = fmtU(seed);
+      document.getElementById('vcontrolsB_inv').textContent = inv.toFixed(1) + ' 次';
+      document.getElementById('vcontrolsB_conv').textContent = (conv * 100).toFixed(0) + '%';
+      document.getElementById('vcontrolsB_churn').textContent = (churn * 100).toFixed(0) + '%';
+      document.getElementById('vcontrolsB_round').textContent = R + ' 轮';
+
+      var lastR = data[data.length - 1].r;
+      var loV = Math.min(1, seed * 0.5);
+      var hiV = Math.max(seed * 1.2, fin * 1.15, 10);
+      cb.yBot = loV; cb.yTop = hiV;
+      cb.clear();
+
+      if (logMode) {
+        for (var p10 = 0; p10 <= 16; p10++) {
+          var pv = Math.pow(10, p10);
+          if (pv >= loV && pv <= hiV) cb.gridY(pv, fmtU(pv));
+        }
+      } else {
+        for (var kk = 0; kk <= 4; kk++) cb.gridY(loV + (hiV - loV) * kk / 4, fmtU(loV + (hiV - loV) * kk / 4));
+      }
+      for (var rr = 0; rr <= lastR; rr += Math.max(1, Math.round(lastR / 10))) cb.gridX(rr, lastR, rr + '轮');
+      cb.halo('传播轮数 →', cb.W - M.r, cb.H - 12, '#94a3b8', '11px sans-serif', 'right');
+
+      function YY(v) { return logMode ? cb.Ylog(v) : cb.Ylin(v); }
+      function drawU(color, width) {
+        cb.ctx.beginPath();
+        for (var q = 0; q < data.length; q++) {
+          var xx = cb.X(data[q].r, lastR), yy = YY(data[q].u);
+          if (q === 0) cb.ctx.moveTo(xx, yy); else cb.ctx.lineTo(xx, yy);
+        }
+        cb.ctx.strokeStyle = color; cb.ctx.lineWidth = width; cb.ctx.lineJoin = 'round'; cb.ctx.stroke();
+      }
+      drawU('#ec4899', 3.2);
+      /* 种子线 */
+      cb.ctx.setLineDash([5, 5]); cb.ctx.strokeStyle = 'rgba(100,116,139,.5)'; cb.ctx.lineWidth = 1.5;
+      cb.ctx.beginPath(); cb.ctx.moveTo(M.l, YY(seed)); cb.ctx.lineTo(cb.W - M.r, YY(seed)); cb.ctx.stroke(); cb.ctx.setLineDash([]);
+      cb.halo('开播场观 ' + fmtU(seed), M.l + 8, YY(seed), '#64748b', '11px sans-serif', 'left');
+
+      var last = data[data.length - 1];
+      var label = blownAt > 0 ? '💥 爆了（超过显示上限）' : '终值 ' + fmtU(fin);
+      cb.halo(label, cb.X(last.r, lastR) - 4, YY(Math.min(last.u, hiV)), '#be185d', 'bold 12px sans-serif', 'right');
+
+      var growthRate = mult - 1; // 每轮净增长率
+      var cls = growthRate > 0.2 ? 'g' : (growthRate > 0 ? 'a' : 'r');
+      var kcls = K > 1 ? 'pk' : (K >= 0.5 ? 'a' : 'r');
+      document.getElementById('chipsB').innerHTML =
+        '<div class="chip ' + kcls + '"><div class="k">自传播系数 K</div><div class="v">' + K.toFixed(2) + '</div></div>' +
+        '<div class="chip ' + cls + '"><div class="k">每轮净乘数</div><div class="v">' + mult.toFixed(2) + ' ×</div></div>' +
+        '<div class="chip ' + (growthRate > 0 ? 'g' : 'r') + '"><div class="k">每轮净增长</div><div class="v">' + (growthRate * 100).toFixed(1) + '%</div></div>' +
+        '<div class="chip"><div class="k">' + R + ' 轮后场观</div><div class="v">' + fmtU(fin) + '</div></div>' +
+        '<div class="chip ' + (blownAt > 0 ? 'pk' : 'a') + '"><div class="k">状态</div><div class="v">' + (blownAt > 0 ? '指数爆发 💥' : (growthRate > 0 ? '自增长' : '萎缩中')) + '</div></div>';
+      var v = document.getElementById('verdictB');
+      if (growthRate <= 0) {
+        v.className = 'verdict r';
+        v.innerHTML = '🔴 <b>冷场循环</b>：K(' + K.toFixed(2) + ') ≤ 每轮流失率(' + (churn * 100).toFixed(0) + '%)，分享拉来的新观众补不上流失 —— 场观越滚越少，全靠投流续命。<b>改进方向：上裂变玩法（拼团/助力/分享解锁）提高分享次数和转化，或用切片短视频把单场变成长尾流量入口。</b>';
+      } else if (growthRate <= 0.2) {
+        v.className = 'verdict a';
+        v.innerHTML = '🟡 <b>温吞水</b>：每轮净增长 ' + (growthRate * 100).toFixed(1) + '%。曲线看着在涨，实际涨不过投流成本 —— 多数直播间卡在这个区间。要么把 K 明显推过流失率，要么先用付费流量把场观盘子撑大、再靠玩法提 K。';
+      } else {
+        v.className = 'verdict g';
+        v.innerHTML = (blownAt > 0 ? '💥 ' : '🟢 ') + '<b>场观起飞！</b>每轮净增长 ' + (growthRate * 100).toFixed(1) + '%' + (blownAt > 0 ? '，第 ' + blownAt + ' 轮就冲破显示上限' : '，' + R + ' 轮后从 ' + fmtU(seed) + ' 涨到 ' + fmtU(fin)) + '。自然流量占比飙升、边际获客成本趋近于零 —— 这就是「内容自带流量」的直播间：每个观众都在帮你拉下一个观众。';
+      }
+      document.getElementById('logNote').textContent = logMode ? '当前：对数坐标（能看清指数爆发的全貌）' : '当前：线性坐标（更贴近直觉，但爆发后曲线会“翘上天”）';
+    }
+
+    document.getElementById('logB').addEventListener('click', function () {
+      logMode = !logMode;
+      renderB();
+    });
+
+    var rT;
+    window.addEventListener('resize', function () {
+      clearTimeout(rT);
+      rT = setTimeout(function () { ca.layout(); cb.layout(); renderA(); renderB(); }, 120);
+    });
+
+    ca.layout(); cb.layout();
+    renderA(); renderB();
+  })();
+})();
+</script>
+</body>
+</html>

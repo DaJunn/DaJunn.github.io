@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>增长的两条曲线 · 复利 &amp; 病毒系数</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(139,92,246,.12), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(236,72,153,.10), transparent 55%),
+      #f5f6fa;
+    color: #1e293b; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: clamp(24px, 4.2vw, 32px); background: linear-gradient(90deg,#7c3aed,#a855f7 45%,#ec4899); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { margin-top: 8px; color: #64748b; font-size: 15px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(15,23,42,.07); padding: 18px; margin-bottom: 18px; }
+  .card h2 { font-size: 19px; margin-bottom: 4px; }
+  .card .desc { color: #64748b; font-size: 14px; margin-bottom: 12px; line-height: 1.6; }
+  canvas { width: 100%; height: clamp(260px, 40vw, 360px); display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { flex: 1 1 auto; min-width: 110px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 8px 12px; text-align: center; }
+  .chip .k { font-size: 12px; color: #64748b; }
+  .chip .v { font-size: 16.5px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .chip.g .v { color: #059669; } .chip.a .v { color: #d97706; } .chip.r .v { color: #e11d48; } .chip.p .v { color: #7c3aed; } .chip.pk .v { color: #db2777; }
+  .verdict { margin-top: 12px; padding: 11px 15px; border-radius: 12px; font-size: 14px; line-height: 1.7; transition: all .2s; }
+  .verdict.g { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+  .verdict.a { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+  .verdict.r { background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; }
+  .controls { margin-top: 12px; display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 11px 20px; }
+  .ctl label { font-size: 13.5px; color: #475569; display: flex; flex-direction: column; gap: 5px; }
+  .ctl .row { display: flex; justify-content: space-between; }
+  .ctl b { color: #8b5cf6; font-variant-numeric: tabular-nums; }
+  .ctl input { width: 100%; accent-color: #8b5cf6; }
+  .tinybtn { margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+  .tinybtn button { border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; padding: 6px 12px; border-radius: 9px; font-size: 13px; cursor: pointer; font-family: inherit; }
+  .tinybtn button:hover { background: #f5f3ff; border-color: #ddd6fe; }
+  .tinybtn .note { font-size: 12.5px; color: #94a3b8; }
+  .foot { font-size: 13.5px; color: #64748b; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; line-height: 1.8; margin-top: 12px; }
+  .foot b { color: #1e293b; }
+  footer { text-align: center; color: #94a3b8; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>增长的两条曲线</h1>
+    <p class="sub">复利：钱自己滚雪球；病毒系数：用户帮你去拉用户。两者本质是同一个数学 —— 指数增长。</p>
+  </header>
+
+  <!-- ============ 卡 A：复利 ============ -->
+  <section class="card">
+    <h2>💎 复利的力量 <span style="font-size:13px;color:#94a3b8;font-weight:400">钱生钱是指数的，不是线性的</span></h2>
+    <div class="desc">同样的本金、同样的年化，<b>单利</b>每年赚固定数额，<b>复利</b>把利息也拿去继续生息 —— 前期看不出差别，后期天壤之别。</div>
+    <canvas id="cvA"></canvas>
+    <div class="chips" id="chipsA"></div>
+    <div class="verdict" id="verdictA"></div>
+    <div class="controls" id="controlsA"></div>
+    <div class="foot"><b>👑 复利的三个杠杆：</b>本金（线性影响）、收益率（指数底数）、时间（指数里的那个指数）。翻倍年数 ≈ <b>70 ÷ 年化收益率</b>（70 法则）：8% 约 9 年翻倍，15% 约 4.7 年，20% 约 3.5 年 —— 收益率差一点，长期差十倍。这也是为什么“长期主义 + 高复利资产”是个人财富积累的核心引擎。</div>
+  </section>
+
+  <!-- ============ 卡 B：病毒系数 ============ -->
+  <section class="card">
+    <h2>📣 病毒系数 K <span style="font-size:13px;color:#94a3b8;font-weight:400">产品能不能“自己长出来”</span></h2>
+    <div class="desc"><b>K = 每个用户平均带来的新用户数。</b>每轮：新增 = 用户 × K，同时会有流失。当 K 大于流失率，用户量每轮按固定比例放大 —— 曲线从“平平无奇”突然翘头，这就是爆款/平台型产品的增长曲线。</div>
+    <canvas id="cvB"></canvas>
+    <div class="chips" id="chipsB"></div>
+    <div class="verdict" id="verdictB"></div>
+    <div class="controls" id="controlsB"></div>
+    <div class="tinybtn"><button id="logB">🔁 切换 线性 / 对数 坐标</button><span class="note" id="logNote"></span></div>
+    <div class="foot"><b>🎯 关键阈值：</b>教科书常讲 <b>K &gt; 1 才自增长</b>；本模型还扣除了流失，所以更准确的门槛是 <b>K &gt; 月流失率</b>。K &lt; 流失 → 曲线萎缩，增长只能靠买量硬撑（买量一停就掉）；K 略高 → 缓慢爬坡；K 明显高 → 指数爆发。<b>产品经理的终极追求：把 K 从 0.9 做到 1.1</b> —— 从“烧钱增长”变成“自带引擎”。参考案例：Dropbox 送空间、微信“邀请才有得聊”、拼多多砍一刀、Zoom 会议免费版（参会者即推广者）。</div>
+  </section>
+
+  <footer>拖动滑杆，观察曲线从“几乎平的”到“突然翘头”的拐点 —— 那就是指数增长开始的地方。</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var M = { l: 64, r: 22, t: 30, b: 42 };
+
+  function makeChart(cvid) {
+    var cv = document.getElementById(cvid);
+    var ctx = cv.getContext('2d');
+    var state = { cv: cv, ctx: ctx, W: 800, H: 380, plotW: 700, plotH: 320, yTop: 1, yBot: 0 };
+    state.layout = function () {
+      var dpr = window.devicePixelRatio || 1;
+      state.W = cv.clientWidth; state.H = cv.clientHeight;
+      cv.width = state.W * dpr; cv.height = state.H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      state.plotW = state.W - M.l - M.r; state.plotH = state.H - M.t - M.b;
+    };
+    state.X = function (m, mmax) { return M.l + m / mmax * state.plotW; };
+    state.Ylin = function (v) { return M.t + (1 - (v - state.yBot) / (state.yTop - state.yBot)) * state.plotH; };
+    state.Ylog = function (v) {
+      var a = Math.log(state.yBot), b = Math.log(state.yTop);
+      return M.t + (1 - (Math.log(Math.max(v, state.yBot)) - a) / (b - a)) * state.plotH;
+    };
+    state.clear = function () { ctx.clearRect(0, 0, state.W, state.H); };
+    state.gridY = function (v, label) {
+      ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+      var py = state.Ylin(v);
+      ctx.strokeStyle = 'rgba(15,23,42,.055)';
+      ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(state.W - M.r, py); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(label, M.l - 8, py);
+    };
+    state.gridX = function (m, mmax, label) {
+      ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+      var px = state.X(m, mmax);
+      ctx.strokeStyle = 'rgba(15,23,42,.05)';
+      ctx.beginPath(); ctx.moveTo(px, state.H - M.b); ctx.lineTo(px, state.H - M.b + 4); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(label, px, state.H - M.b + 6);
+    };
+    state.halo = function (t, x, y, fill, font, align) {
+      ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+      ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineJoin = 'round';
+      ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+    };
+    return state;
+  }
+
+  function buildControls(id, defs, onchange) {
+    var box = document.getElementById(id);
+    var els = {};
+    defs.forEach(function (d) {
+      var wrap = document.createElement('div');
+      wrap.className = 'ctl';
+      wrap.innerHTML = '<label><span class="row"><span>' + d.label + '</span><b id="v' + id + '_' + d.id + '"></b></span>' +
+        '<input type="range" id="' + id + '_' + d.id + '" min="' + d.min + '" max="' + d.max + '" step="' + d.step + '" value="' + d.val + '"></label>';
+      box.appendChild(wrap);
+      els[d.id] = wrap.querySelector('input');
+      els[d.id].addEventListener('input', onchange);
+    });
+    return els;
+  }
+
+  /* ============ 卡 A：复利 ============ */
+  var ca = makeChart('cvA');
+  var defsA = [
+    { id: 'p',  label: '初始本金',   unit: '万元', min: 1, max: 200, step: 1, val: 10 },
+    { id: 'r',  label: '年化收益率',  unit: '%/年', min: 1, max: 40, step: 1, val: 8 },
+    { id: 't',  label: '投资年限',    unit: '年',  min: 1, max: 50, step: 1, val: 30 }
+  ];
+  var eA = buildControls('controlsA', defsA, function () { renderA(); });
+  function vA(id) { return +eA[id].value; }
+
+  function wan(v) {
+    if (!isFinite(v)) return '∞';
+    if (v >= 10000) return (v / 10000).toFixed(2) + ' 亿';
+    if (v >= 1000) return (v / 1000).toFixed(1) + ' 千';
+    return Math.round(v).toString();
+  }
+
+  function renderA() {
+    var P = vA('p'), r = vA('r') / 100, T = vA('t');
+    var comp = P * Math.pow(1 + r, T);
+    var simple = P * (1 + r * T);
+    var doubleYr = r > 0 ? Math.ceil(Math.log(2) / Math.log(1 + r)) : Infinity;
+
+    document.getElementById('vcontrolsA_p').textContent = wan(P) + ' 万';
+    document.getElementById('vcontrolsA_r').textContent = vA('r') + '%';
+    document.getElementById('vcontrolsA_t').textContent = T + ' 年';
+
+    ca.yBot = 0; ca.yTop = Math.max(comp, simple) * 1.12;
+    ca.clear();
+    for (var k = 0; k <= 4; k++) ca.gridY(ca.yTop * k / 4, wan(ca.yTop * k / 4) + (ca.yTop * k / 4 >= 10000 ? '' : ''));
+    for (var yr = 0; yr <= T; yr += Math.max(1, Math.round(T / 10))) ca.gridX(yr, T, yr + '年');
+    ca.halo('年数 →', ca.W - M.r, ca.H - 12, '#94a3b8', '11px sans-serif', 'right');
+
+    function line(fn, color, width, dashed) {
+      ca.ctx.beginPath();
+      for (var y2 = 0; y2 <= T; y2 += 0.25) {
+        var xx = ca.X(y2, T), yy = ca.Ylin(fn(y2));
+        if (y2 === 0) ca.ctx.moveTo(xx, yy); else ca.ctx.lineTo(xx, yy);
+      }
+      ca.ctx.strokeStyle = color; ca.ctx.lineWidth = width; ca.ctx.lineJoin = 'round';
+      if (dashed) ca.ctx.setLineDash([6, 5]); else ca.ctx.setLineDash([]);
+      ca.ctx.stroke(); ca.ctx.setLineDash([]);
+    }
+    line(function (y) { return P * Math.pow(1 + r, y); }, '#8b5cf6', 3.2, false);   // 复利
+    line(function (y) { return P * (1 + r * y); }, '#94a3b8', 2.2, true);          // 单利
+    line(function () { return 2 * P; }, 'rgba(244,63,94,.6)', 1.6, true);          // 2倍本金线
+
+    /* 翻倍点 */
+    if (doubleYr <= T) {
+      var dpx = ca.X(doubleYr, T), dpy = ca.Ylin(2 * P);
+      ca.ctx.beginPath(); ca.ctx.arc(dpx, dpy, 6, 0, Math.PI * 2);
+      ca.ctx.fillStyle = '#ec4899'; ca.ctx.fill(); ca.ctx.strokeStyle = '#fff'; ca.ctx.lineWidth = 2; ca.ctx.stroke();
+      ca.halo('本金翻倍 · 第' + doubleYr + '年 (70法则≈' + Math.max(1, Math.round(70 / vA('r'))) + ')', dpx, Math.max(dpy - 18, M.t + 12), '#be185d', 'bold 12px sans-serif');
+    }
+    ca.halo('复利(最终 ' + wan(comp) + ')', ca.X(T, T) - 4, ca.Ylin(comp), '#6d28d9', 'bold 12px sans-serif', 'right');
+    ca.halo('单利(最终 ' + wan(simple) + ')', ca.X(T, T) - 4, ca.Ylin(simple), '#64748b', 'bold 12px sans-serif', 'right');
+
+    var ratio = simple > 0 ? comp / simple : 0;
+    var cls = ratio >= 3 ? 'g' : (ratio >= 1.8 ? 'a' : 'r');
+    document.getElementById('chipsA').innerHTML =
+      '<div class="chip p"><div class="k">复利终值</div><div class="v">' + wan(comp) + '</div></div>' +
+      '<div class="chip"><div class="k">单利终值</div><div class="v">' + wan(simple) + '</div></div>' +
+      '<div class="chip ' + cls + '"><div class="k">复利 = 单利的</div><div class="v">' + ratio.toFixed(1) + ' 倍</div></div>' +
+      '<div class="chip a"><div class="k">翻倍年数(70法则)</div><div class="v">≈ ' + Math.max(1, Math.round(70 / vA('r'))) + ' 年</div></div>' +
+      '<div class="chip"><div class="k">利息占终值比例</div><div class="v">' + (100 * (1 - P / comp)).toFixed(1) + '%</div></div>';
+    var v = document.getElementById('verdictA');
+    if (T <= 70 / vA('r')) {
+      v.className = 'verdict a';
+      v.innerHTML = '🟡 你现在还处在“看不出差别”的阶段：第 ' + T + ' 年复利才 ' + wan(comp) + '。大多数人在这里就放弃了 —— 但复利恰恰是在<b>翻倍点之后才发威</b>，把年限拉到 ' + (Math.ceil(70 / vA('r')) + 10) + ' 年以上再看。';
+    } else {
+      v.className = 'verdict g';
+      v.innerHTML = '🟢 跨越了翻倍点，复利开始“起飞”：最终 ' + wan(comp) + '，是单利的 ' + ratio.toFixed(1) + ' 倍，其中 ' + (100 * (1 - P / comp)).toFixed(1) + '% 都是利息赚的。前一半时间熬出来的本金，是后一半爆炸的燃料。';
+    }
+  }
+
+  /* ============ 卡 B：病毒系数 ============ */
+  var cb = makeChart('cvB');
+  var logMode = false;
+  var defsB = [
+    { id: 'seed',  label: '初始用户',     unit: '人',    min: 100, max: 100000, step: 100, val: 1000 },
+    { id: 'inv',   label: '每人平均邀请次数', unit: '次/人', min: 0,  max: 5,  step: 0.1, val: 2 },
+    { id: 'conv',  label: '受邀转化率',    unit: '%',     min: 5,  max: 100, step: 5,  val: 50 },
+    { id: 'churn', label: '每轮自然流失率',  unit: '%/轮',  min: 0,  max: 50,  step: 1,  val: 10 },
+    { id: 'round', label: '传播轮数',      unit: '轮',    min: 1,  max: 36,  step: 1,  val: 18 }
+  ];
+  var eB = buildControls('controlsB', defsB, function () { renderB(); });
+  function vB(id) { return +eB[id].value; }
+
+  function fmtU(n) {
+    if (!isFinite(n)) return '∞';
+    if (n >= 1e12) return (n / 1e12).toFixed(1) + ' 万亿';
+    if (n >= 1e8) return (n / 1e8).toFixed(2) + ' 亿';
+    if (n >= 1e4) return (n / 1e4).toFixed(1) + ' 万';
+    return Math.round(n).toString();
+  }
+
+  function renderB() {
+    var seed = vB('seed'), inv = vB('inv'), conv = vB('conv') / 100, churn = vB('churn') / 100, R = vB('round');
+    var K = inv * conv;
+    var mult = 1 + K - churn;                     // 每轮净乘数
+    var cap = 1e15, blownAt = -1;
+    var data = [{ r: 0, u: seed }];
+    var u = seed;
+    for (var i = 1; i <= R; i++) {
+      u = u * mult;
+      if (u > cap) { u = cap; if (blownAt < 0) blownAt = i; }
+      data.push({ r: i, u: u });
+      if (blownAt > 0) break;
+    }
+    var fin = u;
+
+    document.getElementById('vcontrolsB_seed').textContent = fmtU(seed);
+    document.getElementById('vcontrolsB_inv').textContent = inv.toFixed(1) + ' 次';
+    document.getElementById('vcontrolsB_conv').textContent = (conv * 100).toFixed(0) + '%';
+    document.getElementById('vcontrolsB_churn').textContent = (churn * 100).toFixed(0) + '%';
+    document.getElementById('vcontrolsB_round').textContent = R + ' 轮';
+
+    var lastR = data[data.length - 1].r;
+    var loV = Math.min(1, seed * 0.5);
+    var hiV = Math.max(seed * 1.2, fin * 1.15, 10);
+    cb.yBot = loV; cb.yTop = hiV;
+    cb.clear();
+
+    if (logMode) {
+      for (var p10 = 0; p10 <= 16; p10++) {
+        var pv = Math.pow(10, p10);
+        if (pv >= loV && pv <= hiV) cb.gridY(pv, fmtU(pv));
+      }
+    } else {
+      for (var kk = 0; kk <= 4; kk++) cb.gridY(loV + (hiV - loV) * kk / 4, fmtU(loV + (hiV - loV) * kk / 4));
+    }
+    for (var rr = 0; rr <= lastR; rr += Math.max(1, Math.round(lastR / 10))) cb.gridX(rr, lastR, rr + '轮');
+    cb.halo('传播轮数 →', cb.W - M.r, cb.H - 12, '#94a3b8', '11px sans-serif', 'right');
+
+    function YY(v) { return logMode ? cb.Ylog(v) : cb.Ylin(v); }
+    function drawU(color, width) {
+      cb.ctx.beginPath();
+      for (var q = 0; q < data.length; q++) {
+        var xx = cb.X(data[q].r, lastR), yy = YY(data[q].u);
+        if (q === 0) cb.ctx.moveTo(xx, yy); else cb.ctx.lineTo(xx, yy);
+      }
+      cb.ctx.strokeStyle = color; cb.ctx.lineWidth = width; cb.ctx.lineJoin = 'round'; cb.ctx.stroke();
+    }
+    drawU('#ec4899', 3.2);
+    /* 种子线 */
+    cb.ctx.setLineDash([5, 5]); cb.ctx.strokeStyle = 'rgba(100,116,139,.5)'; cb.ctx.lineWidth = 1.5;
+    cb.ctx.beginPath(); cb.ctx.moveTo(M.l, YY(seed)); cb.ctx.lineTo(cb.W - M.r, YY(seed)); cb.ctx.stroke(); cb.ctx.setLineDash([]);
+    cb.halo('初始 ' + fmtU(seed), M.l + 8, YY(seed), '#64748b', '11px sans-serif', 'left');
+
+    var last = data[data.length - 1];
+    var label = blownAt > 0 ? '💥 爆了（超过显示上限）' : '终值 ' + fmtU(fin);
+    cb.halo(label, cb.X(last.r, lastR) - 4, YY(Math.min(last.u, hiV)), '#be185d', 'bold 12px sans-serif', 'right');
+
+    var growthRate = mult - 1; // 每轮净增长率
+    var cls = growthRate > 0.2 ? 'g' : (growthRate > 0 ? 'a' : 'r');
+    var kcls = K > 1 ? 'pk' : (K >= 0.5 ? 'a' : 'r');
+    document.getElementById('chipsB').innerHTML =
+      '<div class="chip ' + kcls + '"><div class="k">病毒系数 K</div><div class="v">' + K.toFixed(2) + '</div></div>' +
+      '<div class="chip ' + cls + '"><div class="k">每轮净乘数</div><div class="v">' + mult.toFixed(2) + ' ×</div></div>' +
+      '<div class="chip ' + (growthRate > 0 ? 'g' : 'r') + '"><div class="k">每轮净增长</div><div class="v">' + (growthRate * 100).toFixed(1) + '%</div></div>' +
+      '<div class="chip"><div class="k">' + R + ' 轮后用户</div><div class="v">' + fmtU(fin) + '</div></div>' +
+      '<div class="chip ' + (blownAt > 0 ? 'pk' : 'a') + '"><div class="k">状态</div><div class="v">' + (blownAt > 0 ? '指数爆发 💥' : (growthRate > 0 ? '自增长' : '萎缩中')) + '</div></div>';
+    var v = document.getElementById('verdictB');
+    if (growthRate <= 0) {
+      v.className = 'verdict r';
+      v.innerHTML = '🔴 <b>萎缩</b>：K(' + K.toFixed(2) + ') ≤ 流失率(' + (churn * 100).toFixed(0) + '%)，每轮净增长 ' + (growthRate * 100).toFixed(1) + '% —— 病毒拉来的用户不够抵消流失。除非持续买量，否则用户量只会缩水。<b>产品改进方向：提高邀请动机或转化率（把 K 抬高），或提高留存（降低流失）。</b>';
+    } else if (growthRate <= 0.2) {
+      v.className = 'verdict a';
+      v.innerHTML = '🟡 <b>缓慢爬坡</b>：每轮净增长 ' + (growthRate * 100).toFixed(1) + '%。增长太慢，容易被竞品和时间拖死 —— 多数产品死在这个区间：曲线看起来在涨，实际涨不过市场。要么把 K 推过 1，要么用付费渠道补上缺口。';
+    } else {
+      v.className = 'verdict g';
+      v.innerHTML = (blownAt > 0 ? '💥 ' : '🟢 ') + '<b>指数爆发！</b>每轮净增长 ' + (growthRate * 100).toFixed(1) + '%' + (blownAt > 0 ? '，第 ' + blownAt + ' 轮就冲破显示上限' : '，' + R + ' 轮后从 ' + fmtU(seed) + ' 涨到 ' + fmtU(fin)) + '。这就是“自带增长引擎”的产品曲线：每多一个用户，都会带来更多用户 —— 边际获客成本趋近于零。';
+    }
+    document.getElementById('logNote').textContent = logMode ? '当前：对数坐标（能看清指数爆发的全貌）' : '当前：线性坐标（更贴近直觉，但爆发后曲线会“翘上天”）';
+  }
+
+  document.getElementById('logB').addEventListener('click', function () {
+    logMode = !logMode;
+    renderB();
+  });
+
+  var rT;
+  window.addEventListener('resize', function () {
+    clearTimeout(rT);
+    rT = setTimeout(function () { ca.layout(); cb.layout(); renderA(); renderB(); }, 120);
+  });
+
+  ca.layout(); cb.layout();
+  renderA(); renderB();
+})();
+</script>
+</body>
+</html>

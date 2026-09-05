@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>现金流跑道 · 模拟经营一家 SaaS 公司</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(59,130,246,.13), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(245,158,11,.10), transparent 55%),
+      #f5f6fa;
+    color: #1e293b; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: clamp(24px, 4.2vw, 32px); background: linear-gradient(90deg,#2563eb,#0ea5e9 50%,#f59e0b); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { margin-top: 8px; color: #64748b; font-size: 15px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(15,23,42,.07); padding: 18px; margin-bottom: 18px; }
+  canvas { width: 100%; height: clamp(280px, 42vw, 400px); display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { flex: 1 1 auto; min-width: 108px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 8px 12px; text-align: center; }
+  .chip .k { font-size: 12px; color: #64748b; }
+  .chip .v { font-size: 16.5px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .chip.g .v { color: #059669; } .chip.a .v { color: #d97706; } .chip.r .v { color: #e11d48; } .chip.b .v { color: #2563eb; }
+  .verdict { margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-size: 14.5px; line-height: 1.7; transition: all .2s; }
+  .verdict.g { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+  .verdict.a { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+  .verdict.r { background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; }
+  .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 20px; }
+  .ctl label { font-size: 13.5px; color: #475569; display: flex; flex-direction: column; gap: 6px; }
+  .ctl .row { display: flex; justify-content: space-between; }
+  .ctl b { color: #2563eb; font-variant-numeric: tabular-nums; }
+  .ctl input { width: 100%; accent-color: #2563eb; }
+  .presets { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button { border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; padding: 7px 13px; border-radius: 10px; font-size: 13.5px; cursor: pointer; font-family: inherit; transition: all .15s; }
+  .presets button:hover { background: #eff6ff; border-color: #93c5fd; transform: translateY(-1px); }
+  .info { font-size: 14px; line-height: 1.9; color: #475569; }
+  .info b { color: #1e293b; }
+  .key { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 10px; margin-top: 14px; }
+  .key > div { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  .key b { color: #1e293b; }
+  footer { text-align: center; color: #94a3b8; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>现金流跑道 · 模拟经营</h1>
+    <p class="sub">利润表上你可能盈利，但账上没钱就会死。拨动参数，看你的公司会不会在黎明前断粮。</p>
+  </header>
+
+  <section class="card">
+    <canvas id="cv"></canvas>
+    <div class="chips" id="chips"></div>
+    <div class="verdict" id="verdict">设置好你的生意参数，看现金流怎么跑。</div>
+    <div class="controls" id="controls"></div>
+    <div class="presets" id="presets">
+      <button data-preset="saas">📦 谨慎 SaaS</button>
+      <button data-preset="o2o">🔥 烧钱 O2O</button>
+      <button data-preset="consult">🧑‍💼 稳健咨询</button>
+      <button data-preset="trap">🪤 永不盈利的陷阱</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="info">
+      <b>三个核心概念：</b><br>
+      <b>烧钱率 Burn</b> = 每月总支出 − 每月收入（负数即每月净烧多少）　·　
+      <b>跑道 Runway</b> = 账上现金 ÷ 每月净烧钱 ≈ 还能活几个月　·　
+      <b>盈亏平衡</b> = 收入 ≥ 支出的那个月（之后开始自己养活自己）。
+      <br><br>营收是<b>慢慢爬坡</b>的（客户按月积累），而工资、房租、获客投入是<b>当月就要付</b>的 —— 中间的洞只能靠现金填。创业公司第一大死因不是没需求，而是<b>现金流断裂（烧钱快于回款）</b>。虚线表示“如果公司能撑到那一天”的收入/支出走势。
+    </div>
+    <div class="key">
+      <div><b>💡 怎么延长跑道：</b>砍固定成本、提高客单价/毛利、降低获客成本、提高留存（降低流失）；或者——更快融资。融资不是“烧”，是<b>买时间</b>买到盈亏平衡那天。</div>
+      <div><b>⚠️ 亏损 ≠ 会死：</b>几乎所有高增长公司都长期亏损，但只要现金能撑到收入追上支出的拐点，就活着；反之再赚钱的账也只是纸面富贵。</div>
+      <div><b>🧮 简化假设：</b>本模拟按“每月固定新增客户、按流失率衰减”计算（客户数收敛到 新增÷流失），忽略一次性大单、回款账期、期权等，用于建立直觉而非做财务模型。</div>
+    </div>
+  </section>
+
+  <footer>蓝线=现金余额 · 绿线=每月收入 · 红线=每月支出 · 试试融资滑杆：把「时点」设在断粮前、金额给足，看公司如何被救活。</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var chipsEl = document.getElementById('chips');
+  var verdictEl = document.getElementById('verdict');
+  var controlsEl = document.getElementById('controls');
+
+  var HORIZON = 60; // 模拟 60 个月
+
+  var defs = [
+    { id: 'cash',    label: '期初现金',          unit: '万元', min: 10,  max: 1000, step: 10,  val: 150 },
+    { id: 'fixed',   label: '月固定支出(工资/房租)', unit: '万元/月', min: 1,  max: 200,  step: 1,   val: 12 },
+    { id: 'price',   label: '单客月费',           unit: '元/月', min: 10,  max: 2000, step: 10,  val: 400 },
+    { id: 'newcust', label: '每月新增客户',        unit: '人/月', min: 0,   max: 5000, step: 10,  val: 40 },
+    { id: 'churn',   label: '月流失率',           unit: '%/月', min: 0.5, max: 30,   step: 0.5, val: 2 },
+    { id: 'cac',     label: '单客获客成本',        unit: '元/人', min: 0,   max: 5000, step: 50,  val: 1500 },
+    { id: 'fundM',   label: '融资时点（0=不融资）',  unit: '第x月', min: 0,   max: 36,   step: 1,   val: 0 },
+    { id: 'fundA',   label: '融资金额',           unit: '万元', min: 50,  max: 5000, step: 50,  val: 400 }
+  ];
+  var els = {};
+  defs.forEach(function (d) {
+    var wrap = document.createElement('div');
+    wrap.className = 'ctl';
+    wrap.innerHTML = '<label><span class="row"><span>' + d.label + '</span><b id="v_' + d.id + '"></b></span>' +
+      '<input type="range" id="' + d.id + '" min="' + d.min + '" max="' + d.max + '" step="' + d.step + '" value="' + d.val + '"></label>';
+    controlsEl.appendChild(wrap);
+    els[d.id] = wrap.querySelector('input');
+  });
+  var vls = {};
+  defs.forEach(function (d) { vls[d.id] = document.getElementById('v_' + d.id); });
+
+  var M = { l: 58, r: 20, t: 30, b: 44 };
+  var W = 800, H = 400, plotW = 700, plotH = 320;
+
+  function wan(x) { return isFinite(x) ? x.toFixed(1) : '∞'; }
+
+  function simulate() {
+    var cash0 = +els.cash.value;
+    var fixed = +els.fixed.value;                    // 万元/月
+    var price = +els.price.value / 10000;            // 万元/月/客户
+    var add = +els.newcust.value;                    // 人/月
+    var churn = +els.churn.value / 100;
+    var cac = +els.cac.value / 10000;                // 万元/人
+    var fundM = +els.fundM.value, fundA = +els.fundA.value;
+
+    var cash = cash0, customers = 0, raised = 0;
+    var history = [], death = -1, be = -1;
+    var minAlive = cash0, minAll = cash0;            // 存活期最低 & 全程最低（融资缺口看全程）
+    for (var m = 1; m <= HORIZON; m++) {
+      customers = customers * (1 - churn) + add;
+      var revenue = customers * price;
+      var spend = fixed + add * cac;
+      var net = revenue - spend;
+      cash += net;
+      if (m === fundM && fundM > 0 && death < 0) { cash += fundA; raised += fundA; }
+      if (cash < minAll) minAll = cash;
+      if (death < 0) {
+        if (cash < 0) death = m;                     // 断粮月
+        else if (cash < minAlive) minAlive = cash;
+      }
+      if (be < 0 && net >= 0) be = m;                // 全程找盈亏平衡（死了也算，看“若撑到那天”）
+      history.push({ m: m, cash: cash, revenue: revenue, spend: spend, net: net });
+    }
+    var endCash = death > 0 ? history[death - 1].cash : cash;
+    return { cash0: cash0, fixed: fixed, add: add, raised: raised, history: history,
+             minAlive: minAlive, minAll: minAll, death: death, be: be, endCash: endCash };
+  }
+
+  function verdict(p) {
+    var cls, html;
+    if (p.death > 0) {
+      cls = 'r';
+      var need = Math.max(0, -p.minAll);
+      if (p.be > 0 && p.be > p.death) {
+        html = '💀 <b>死于黎明前</b>：第 ' + p.death + ' 个月断粮，而你的模式其实要撑到第 ' + p.be + ' 个月才能盈亏平衡 —— 只差现金，不差生意。途中累计最大资金缺口约 <b>¥' + wan(need) + ' 万</b>。试试把「融资时点」拖到第 1~' + Math.max(1, p.death - 1) + ' 个月、金额 ≥ ¥' + Math.ceil(need * 1.15 / 10) * 10 + ' 万，虚线会变成实线。';
+      } else if (p.be > 0) {
+        html = '💀 <b>现金流断裂</b>：第 ' + p.death + ' 个月断粮。虽然第 ' + p.be + ' 个月单月已盈利，但前期窟窿太深、回填太慢。峰值缺口 ¥' + wan(need) + ' 万 —— 需要更早、更大的融资（试试时点=1、金额拉满）。';
+      } else {
+        html = '💀 <b>现金流断裂</b>：第 ' + p.death + ' 个月断粮，而且 60 个月内收入始终盖不住支出 —— <b>模式本身不成立</b>。这时候融资只是延长死亡，先改单位经济（客单价/留存/固定成本）再谈扩张。';
+      }
+    } else if (p.be > 0) {
+      cls = 'g';
+      var fundNote = p.raised > 0 ? '（期间融资 ¥' + wan(p.raised) + ' 万，帮你跨越了亏损期）' : '（没融一分钱）';
+      var near = p.minAlive < p.cash0 * 0.25 ? '不过途中现金最低只剩 ¥' + wan(p.minAlive) + ' 万，贴着悬崖边飞过——再激进一点就断粮了。' : '';
+      html = '🟢 <b>活下来了</b>' + fundNote + '：第 ' + p.be + ' 个月开始盈亏平衡，60 个月期末账上有 <b>¥' + wan(p.endCash) + ' 万</b>。' + near + '跑道的意义：亏损期不是死亡，只要现金撑到收入拐点。';
+    } else {
+      cls = 'a';
+      html = '🟡 <b>暂时没死，但模式有问题</b>：账上还有钱（期末 ¥' + wan(p.endCash) + ' 万），可 60 个月都没实现过单月盈亏平衡 —— 现在靠存量现金撑着，烧完只是时间问题。需要提高客单价 / 留存，或砍固定成本。';
+    }
+    return { cls: cls, html: html };
+  }
+
+  function layout() {
+    var dpr = window.devicePixelRatio || 1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    plotW = W - M.l - M.r; plotH = H - M.t - M.b;
+    draw();
+  }
+
+  function halo(t, x, y, fill, font, align) {
+    ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineJoin = 'round';
+    ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+  }
+
+  function draw() {
+    var p = simulate();
+    ctx.clearRect(0, 0, W, H);
+    var mmax = HORIZON;
+    var death = p.death;
+    var aliveN = death > 0 ? death : HORIZON;       // 现金画到断粮月为止
+
+    /* y 范围 */
+    var lo = 0, hi = p.cash0;
+    for (var i = 0; i < p.history.length; i++) {
+      var r = p.history[i];
+      hi = Math.max(hi, r.revenue, r.spend);
+      if (i < aliveN) { hi = Math.max(hi, r.cash); lo = Math.min(lo, r.cash); }
+    }
+    hi *= 1.12; lo = lo < 0 ? lo * 1.18 : 0;
+    if (hi - lo < 1e-6) hi = lo + 1;
+
+    function X(m) { return M.l + m / mmax * plotW; }
+    function Y(v) { return M.t + (1 - (v - lo) / (hi - lo)) * plotH; }
+
+    ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (var k = 0; k <= 4; k++) {
+      var v = lo + (hi - lo) * k / 4, py = Y(v);
+      ctx.strokeStyle = 'rgba(15,23,42,.05)';
+      ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(wan(v), M.l - 8, py);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (var xm = 0; xm <= mmax; xm += Math.max(1, Math.round(mmax / 10))) {
+      var px = X(xm);
+      ctx.strokeStyle = 'rgba(15,23,42,.05)';
+      ctx.beginPath(); ctx.moveTo(px, H - M.b); ctx.lineTo(px, H - M.b + 4); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(xm + '月', px, H - M.b + 7);
+    }
+    halo('时间 →', W - M.r, H - 12, '#94a3b8', '11px sans-serif', 'right');
+    if (lo < 0) {
+      var y0 = Y(0);
+      ctx.strokeStyle = 'rgba(15,23,42,.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(M.l, y0); ctx.lineTo(W - M.r, y0); ctx.stroke();
+      ctx.fillStyle = 'rgba(225,29,72,.06)';
+      ctx.fillRect(M.l, y0, plotW, plotH - (y0 - M.t));
+    }
+
+    /* 通用画线：cutIdx 之后用虚线淡画（表示“若撑到那天”） */
+    function drawSeries(key, color, width, cutIdx) {
+      var cut = cutIdx || 0;
+      ctx.beginPath();
+      for (var i = 0; i < p.history.length; i++) {
+        var xx = X(p.history[i].m), yy = Y(p.history[i][key]);
+        if (i === 0) ctx.moveTo(xx, yy); else ctx.lineTo(xx, yy);
+        if (i === cut - 1) { ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .95; ctx.stroke(); ctx.beginPath(); ctx.moveTo(xx, yy); }
+      }
+      if (cut < p.history.length && cut > 0) {      // 虚线段
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .38; ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        for (var j = cut; j < p.history.length; j++) {
+          var xx2 = X(p.history[j].m), yy2 = Y(p.history[j][key]);
+          if (j === cut) ctx.moveTo(xx2, yy2); else ctx.lineTo(xx2, yy2);
+        }
+        ctx.stroke(); ctx.setLineDash([]);
+      } else {
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = .95; ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    drawSeries('revenue', '#10b981', 2.4, death);   // 收入/支出全程画（断粮后虚线）
+    drawSeries('spend', '#f43f5e', 2.4, death);
+
+    /* 现金余额：只画到断粮月为止（实线） */
+    ctx.beginPath();
+    for (var ci = 0; ci < aliveN; ci++) {
+      var cxx = X(p.history[ci].m), cyy = Y(p.history[ci].cash);
+      if (ci === 0) ctx.moveTo(cxx, cyy); else ctx.lineTo(cxx, cyy);
+    }
+    ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3.2; ctx.lineJoin = 'round'; ctx.stroke();
+    halo('现金余额', M.l + 6, Y(Math.max(p.cash0, lo)) - 10, '#1d4ed8', 'bold 12px sans-serif', 'left');
+
+    var last = p.history[HORIZON - 1];
+    halo('收入', X(57), Y(last.revenue) - 12, '#047857', 'bold 12px sans-serif', 'center');
+    halo('支出', X(57), Y(last.spend) - 12, '#be123c', 'bold 12px sans-serif', 'center');
+
+    /* 盈亏平衡点（若在 60 个月内） */
+    if (p.be > 0) {
+      var bp = X(p.be), bby = Y(p.history[p.be - 1].revenue);
+      ctx.beginPath(); ctx.arc(bp, bby, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#10b981'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      halo(p.be > death && death > 0 ? '盈亏平衡 · 第' + p.be + '月（若撑到）' : '盈亏平衡 · 第' + p.be + '月',
+           Math.min(bp + 12, W - M.r), Math.max(bby - 18, M.t + 12), '#047857', 'bold 12px sans-serif', 'left');
+    }
+
+    /* 融资注入 */
+    if (p.fundM > 0) {
+      var fm = p.history[p.fundM - 1];
+      var fpx = X(fm.m), fpy = Y(Math.max(fm.cash, lo));
+      ctx.strokeStyle = 'rgba(217,119,6,.55)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(fpx, M.t); ctx.lineTo(fpx, H - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(fpx, fpy - 12); ctx.lineTo(fpx + 9, fpy - 2); ctx.lineTo(fpx - 9, fpy - 2); ctx.closePath();
+      ctx.fillStyle = '#d97706'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      halo('融资 ¥' + wan(p.fundA) + '万', fpx, Math.max(fpy - 20, M.t + 14), '#b45309', 'bold 12px sans-serif');
+    }
+
+    /* 死亡标记 */
+    if (death > 0) {
+      var dpx = X(death);
+      ctx.strokeStyle = 'rgba(225,29,72,.6)'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]);
+      ctx.beginPath(); ctx.moveTo(dpx, M.t); ctx.lineTo(dpx, H - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.font = 'bold 14px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#9f1239';
+      ctx.fillText('💀 断粮', dpx, Math.max(M.t + 14, 20));
+    }
+  }
+
+  function render() {
+    var p = simulate();
+    vls.cash.textContent = wan(p.cash0) + ' 万';
+    vls.fixed.textContent = wan(p.fixed) + ' 万';
+    vls.price.textContent = Math.round(+els.price.value) + ' 元';
+    vls.newcust.textContent = p.add + ' 人';
+    vls.churn.textContent = (+els.churn.value).toFixed(1) + '%';
+    vls.cac.textContent = Math.round(+els.cac.value) + ' 元';
+    vls.fundM.textContent = p.fundM > 0 ? '第 ' + p.fundM + ' 月' : '不融资';
+    vls.fundA.textContent = wan(p.fundA) + ' 万';
+
+    var full60 = p.history[HORIZON - 1];
+    chipsEl.innerHTML =
+      '<div class="chip b"><div class="k">期初现金</div><div class="v">' + wan(p.cash0) + ' 万</div></div>' +
+      '<div class="chip"><div class="k">期末现金</div><div class="v ' + (p.endCash >= 0 ? 'g' : 'r') + '">' + wan(p.endCash) + ' 万</div></div>' +
+      '<div class="chip"><div class="k">第60月收入(平台)</div><div class="v g">' + wan(full60.revenue) + ' 万</div></div>' +
+      '<div class="chip"><div class="k">月总支出</div><div class="v r">' + wan(p.fixed + p.add * (+els.cac.value) / 10000) + ' 万</div></div>' +
+      '<div class="chip ' + (p.be > 0 ? 'g' : 'a') + '"><div class="k">盈亏平衡(60月内)</div><div class="v">' + (p.be > 0 ? '第 ' + p.be + ' 月' : '未达成') + '</div></div>' +
+      '<div class="chip ' + (p.death > 0 ? 'r' : 'g') + '"><div class="k">现金断粮</div><div class="v">' + (p.death > 0 ? '第 ' + p.death + ' 月 💀' : '60个月内安全') + '</div></div>' +
+      '<div class="chip ' + (p.minAll < 0 ? 'r' : 'g') + '"><div class="k">最大资金缺口</div><div class="v">' + wan(Math.min(0, p.minAll)) + ' 万</div></div>' +
+      (p.raised > 0 ? '<div class="chip"><div class="k">已融资</div><div class="v b">' + wan(p.raised) + ' 万</div></div>' : '');
+    var v = verdict(p);
+    verdictEl.className = 'verdict ' + v.cls;
+    verdictEl.innerHTML = v.html;
+    draw();
+  }
+
+  var presets = {
+    saas: { cash: 150, fixed: 12, price: 400, newcust: 40, churn: 2, cac: 1500, fundM: 0, fundA: 400 },
+    o2o: { cash: 300, fixed: 80, price: 30, newcust: 3000, churn: 8, cac: 60, fundM: 0, fundA: 400 },
+    consult: { cash: 60, fixed: 8, price: 2000, newcust: 12, churn: 4, cac: 800, fundM: 0, fundA: 100 },
+    trap: { cash: 500, fixed: 5, price: 20, newcust: 30, churn: 3, cac: 0, fundM: 0, fundA: 300 }
+  };
+  document.getElementById('presets').addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var pr = presets[btn.dataset.preset];
+    if (!pr) return;
+    defs.forEach(function (d) { els[d.id].value = pr[d.id]; });
+    render();
+  });
+
+  defs.forEach(function (d) { els[d.id].addEventListener('input', render); });
+  var rT;
+  window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(layout, 120); });
+
+  layout();
+  render();
+})();
+</script>
+</body>
+</html>

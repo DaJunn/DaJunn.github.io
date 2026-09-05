@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>局部最优 vs 全局最优 · 交互演示</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(99,102,241,.14), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(16,185,129,.12), transparent 55%),
+      #f5f6fa;
+    color: #1e293b;
+    padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 {
+    font-size: clamp(24px, 4.2vw, 32px); letter-spacing: .5px;
+    background: linear-gradient(90deg, #4f46e5, #8b5cf6 45%, #10b981);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  h1 .vs { font-size: .62em; font-weight: 600; -webkit-text-fill-color: #94a3b8; }
+  .sub { margin-top: 8px; color: #64748b; font-size: 15px; }
+  .card {
+    background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(15,23,42,.07);
+    padding: 18px; margin-bottom: 18px;
+  }
+  canvas {
+    width: 100%; height: clamp(280px, 42vw, 400px); display: block;
+    cursor: crosshair; user-select: none; touch-action: manipulation;
+  }
+  .stats {
+    margin-top: 10px; padding: 7px 12px; border-radius: 8px;
+    background: #f8fafc; border: 1px solid #eef2f7;
+    font: 12.5px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #475569; font-variant-numeric: tabular-nums; white-space: nowrap;
+    overflow-x: auto;
+  }
+  .stats b { color: #4f46e5; font-weight: 600; }
+  .controls { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  button {
+    border: 1px solid #e2e8f0; background: #f8fafc; color: #334155;
+    padding: 8px 14px; border-radius: 10px; font-size: 14px; cursor: pointer;
+    transition: all .15s ease; font-family: inherit; user-select: none;
+  }
+  button:hover { background: #eef2ff; border-color: #c7d2fe; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.accent { background: linear-gradient(90deg, #f59e0b, #f97316); border: none; color: #fff; font-weight: 600; }
+  button.accent:hover { filter: brightness(1.06); }
+  button.ghost { background: transparent; }
+  .ctrl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 18px; font-size: 14px; color: #475569; }
+  .slider { display: flex; align-items: center; gap: 8px; }
+  .slider input { width: min(180px, 38vw); accent-color: #4f46e5; }
+  .slider b { min-width: 38px; font-variant-numeric: tabular-nums; color: #4f46e5; }
+  .chk { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .chk input { accent-color: #8b5cf6; width: 16px; height: 16px; }
+  .status {
+    margin-top: 10px; padding: 10px 14px; border-radius: 10px; font-size: 14px; line-height: 1.6;
+    background: #f1f5f9; color: #475569; transition: background .2s ease, color .2s ease;
+  }
+  .status.run   { background: #eff6ff; color: #1d4ed8; }
+  .status.ok    { background: #ecfdf5; color: #047857; font-weight: 600; }
+  .status.stuck { background: #fff7ed; color: #c2410c; font-weight: 600; }
+  .status.warn  { background: #fef2f2; color: #b91c1c; font-weight: 600; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .card.def h3 { font-size: 16px; margin-bottom: 8px; }
+  .card.def p { font-size: 14px; line-height: 1.8; color: #475569; }
+  .def.local  { border-top: 4px solid #f59e0b; }
+  .def.global { border-top: 4px solid #10b981; }
+  .def.why    { border-top: 4px solid #6366f1; }
+  .strat h3 { font-size: 17px; margin-bottom: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 10px; }
+  .grid > div {
+    display: flex; flex-direction: column; gap: 3px; padding: 12px 14px;
+    background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; font-size: 14px;
+  }
+  .grid b { color: #1e293b; }
+  .grid span { color: #64748b; font-size: 13px; line-height: 1.6; }
+  .note {
+    margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+    background: #f5f3ff; color: #5b21b6; font-size: 13.5px; line-height: 1.8;
+  }
+  footer { text-align: center; color: #94a3b8; font-size: 13px; margin-top: 6px; }
+  @media (max-width: 560px) {
+    .grid { grid-template-columns: 1fr; }
+    .btn-row button { flex: 1 1 calc(50% - 4px); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>局部最优 <span class="vs">VS</span> 全局最优</h1>
+    <p class="sub">在一维「损失地形」上滚一个小球 —— 看看梯度下降为什么会半路“安家”，以及怎么帮它逃出去。</p>
+  </header>
+
+  <section class="card">
+    <canvas id="cv"></canvas>
+    <div class="stats" id="stats">x = — &nbsp;·&nbsp; f(x) = — &nbsp;·&nbsp; |∇f| = — &nbsp;·&nbsp; iter = 0</div>
+    <div class="controls">
+      <div class="btn-row">
+        <button id="btnLeft">▶ 从左端出发</button>
+        <button id="btnRight">▶ 从右端出发</button>
+        <button id="btnRandom">🎲 随机起点</button>
+        <button id="btnKick" class="accent">💥 随机扰动（踢一脚）</button>
+        <button id="btnReset" class="ghost">↺ 重置</button>
+      </div>
+      <div class="ctrl-row">
+        <label class="slider">学习率 η
+          <input type="range" id="lr" min="0.02" max="0.5" step="0.01" value="0.12">
+          <b id="lrVal">0.12</b>
+        </label>
+        <label class="chk"><input type="checkbox" id="mom"> 🌀 动量（惯性，帮小球冲过浅坑）</label>
+      </div>
+    </div>
+    <div class="status" id="status">点击地形任意位置放置小球，或使用上方按钮开始实验。</div>
+  </section>
+
+  <section class="cards">
+    <div class="card def local">
+      <h3>🕳️ 局部最优 Local Optimum</h3>
+      <p>在它<b>附近的邻域</b>里，它的损失最小 —— 但放到整条曲线上看，还有更低的谷底。梯度下降一旦落入，梯度 ≈ 0，算法会“误以为”已经收敛，就此停下。</p>
+    </div>
+    <div class="card def global">
+      <h3>🎯 全局最优 Global Optimum</h3>
+      <p><b>整个搜索空间</b>中损失最小的点，是优化真正想要的答案。它只有一个，却可能藏在任何位置 —— 是否找到它，很大程度取决于从哪里出发。</p>
+    </div>
+    <div class="card def why">
+      <h3>🤔 为什么会被困住？</h3>
+      <p>梯度下降是“贪心”的：每一步只沿<b>脚下最陡的下坡方向</b>走。它没有全局地图，遇到第一个谷底（导数 = 0）就停 —— 所以<b>初始化位置</b>往往决定了终点。</p>
+    </div>
+  </section>
+
+  <section class="card strat">
+    <h3>🧰 常用的“逃逸”策略（试试上面的按钮！）</h3>
+    <div class="grid">
+      <div><b>🎲 随机重启</b><span>多个随机起点分别下山，取最好的结果 —— 相当于多点撒网。</span></div>
+      <div><b>🌀 动量 / Adam</b><span>给优化加入惯性，浅坑拦不住它，能翻过小山丘继续下坡。</span></div>
+      <div><b>📉 学习率退火 / 热重启</b><span>先大步翻山，再小步精调；周期性调大学习率“加热”，再次跳出。</span></div>
+      <div><b>⚡ SGD 的天然噪声</b><span>小批量梯度自带抖动，本身就可能把小球“颠”出浅坑。</span></div>
+      <div><b>🔥 模拟退火</b><span>以一定概率接受“上坡”移动，温度逐渐降低后慢慢稳定收敛。</span></div>
+      <div><b>🧬 遗传算法 / 群体智能</b><span>一群个体同时探索不同区域，天然覆盖多个盆地。</span></div>
+    </div>
+    <p class="note">💡 冷知识：在深度学习那种上亿维的空间里，研究表明真正“坏”的局部最优其实很少 —— 大多数局部最优已经非常接近全局最优，真正的拦路虎更多是<b>鞍点（saddle point）</b>和平坦的高原。</p>
+  </section>
+
+  <footer>交互提示：点击曲线任意位置放置小球 · 先从左端出发看它被困，再开「🌀 动量」+「💥 踢一脚」看它翻山越岭找到全局最优</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var statusEl = document.getElementById('status');
+  var statsEl = document.getElementById('stats');
+  var lrEl = document.getElementById('lr');
+  var lrVal = document.getElementById('lrVal');
+  var momEl = document.getElementById('mom');
+
+  /* ---------- 损失地形：碗形基准线 + 若干高斯凹坑（两端均为上坡，小球不会滑出边界） ---------- */
+  var XMIN = 0, XMAX = 10;
+  var dips = [
+    { c: 2.5, d: 1.3, w: 0.90 },   // 局部最优 ①
+    { c: 5.2, d: 3.0, w: 0.95 },   // 全局最优
+    { c: 8.0, d: 1.5, w: 0.75 }    // 局部最优 ②
+  ];
+  var K = 0.08, XC = 5.0;          // 基准地形 f = K·(x - XC)²
+  function f(x) {
+    var y = K * (x - XC) * (x - XC), i, u;
+    for (i = 0; i < dips.length; i++) { u = (x - dips[i].c) / dips[i].w; y -= dips[i].d * Math.exp(-u * u); }
+    return y;
+  }
+  function grad(x) {
+    var g = 2 * K * (x - XC), i, u;
+    for (i = 0; i < dips.length; i++) { u = (x - dips[i].c) / dips[i].w; g += 2 * dips[i].d * u * Math.exp(-u * u) / dips[i].w; }
+    return g;
+  }
+
+  /* ---------- 精确找出所有极小值点 ---------- */
+  var minima = [];
+  (function () {
+    var N = 3000, pg = grad(XMIN), px = XMIN, i, x, g, lo, hi;
+    for (i = 1; i <= N; i++) {
+      x = XMIN + (XMAX - XMIN) * i / N; g = grad(x);
+      if (pg < 0 && g >= 0) {
+        lo = px; hi = x;
+        for (var k = 0; k < 60; k++) { var mm = (lo + hi) / 2; if (grad(mm) < 0) lo = mm; else hi = mm; }
+        minima.push({ x: (lo + hi) / 2 });
+      }
+      pg = g; px = x;
+    }
+    for (i = 0; i < minima.length; i++) minima[i].y = f(minima[i].x);
+    minima.sort(function (a, b) { return a.x - b.x; });
+  })();
+  var globalIdx = 0, i0;
+  for (i0 = 1; i0 < minima.length; i0++) if (minima[i0].y < minima[globalIdx].y) globalIdx = i0;
+  var localNo = 0;
+  minima.forEach(function (m, i) {
+    if (i === globalIdx) { m.label = '全局最优 ★'; m.isGlobal = true; }
+    else m.label = '局部最优 ' + ['①', '②', '③', '④'][localNo++];
+  });
+
+  /* ---------- 画布布局与坐标映射 ---------- */
+  var M = { l: 52, r: 18, t: 34, b: 44 };
+  var W = 800, H = 400, plotW = 700, plotH = 320, yTop = 4, yBot = -1.3;
+  function xToPx(x) { return M.l + (x - XMIN) / (XMAX - XMIN) * plotW; }
+  function pxToX(px) { return XMIN + (px - M.l) / plotW * (XMAX - XMIN); }
+  function yToPx(y) { return M.t + (yTop - y) / (yTop - yBot) * plotH; }
+  function layout() {
+    var dpr = window.devicePixelRatio || 1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    plotW = W - M.l - M.r; plotH = H - M.t - M.b;
+    var mn = Infinity, mx = -Infinity, i, y;
+    for (i = 0; i <= 200; i++) { y = f(XMIN + (XMAX - XMIN) * i / 200); if (y < mn) mn = y; if (y > mx) mx = y; }
+    yBot = mn - 0.45; yTop = mx + 0.55;
+  }
+
+  /* ---------- 小球状态与梯度下降 ---------- */
+  var ball = null, lr = 0.12, momentum = false, userInteracted = false;
+  var BETA = 0.9, STEPS_PER_SEC = 120;
+  function place(x, msg) {
+    ball = { x: x, v: 0, trail: [], iter: 0, calm: 0, running: true, settled: false, win: undefined };
+    setStatus(msg || ('小球落在 x = ' + x.toFixed(2) + '，开始下山……'), 'run');
+    refreshStats();
+  }
+  function setStatus(t, cls) { statusEl.textContent = t; statusEl.className = 'status ' + (cls || 'idle'); }
+  function settle() {
+    var best = 0, bd = Infinity, i, d;
+    for (i = 0; i < minima.length; i++) { d = Math.abs(minima[i].x - ball.x); if (d < bd) { bd = d; best = i; } }
+    var m = minima[best];
+    if (best === globalIdx) {
+      ball.win = true;
+      setStatus('🎉 找到全局最优！x ≈ ' + m.x.toFixed(2) + '，f(x) ≈ ' + m.y.toFixed(2) + '，共迭代 ' + ball.iter + ' 步。换几个起点 / 调调学习率再试试？', 'ok');
+    } else {
+      ball.win = false;
+      setStatus('😵 卡在局部最优（x ≈ ' + ball.x.toFixed(2) + '，f(x) ≈ ' + f(ball.x).toFixed(2) + '）。这里梯度为 0，贪心的下山法以为到终点了 —— 点击【💥 随机扰动】或勾选【🌀 动量】帮它逃出去！', 'stuck');
+    }
+  }
+
+  /* ---------- 物理：固定步长的梯度下降 ---------- */
+  function stepOnce() {
+    var g = grad(ball.x);
+    ball.v = momentum ? BETA * ball.v - lr * g : -lr * g;
+    ball.x += ball.v;
+    if (ball.x < XMIN + 0.03) { ball.x = XMIN + 0.03; ball.v = -0.45 * ball.v; }
+    if (ball.x > XMAX - 0.03) { ball.x = XMAX - 0.03; ball.v = -0.45 * ball.v; }
+    ball.trail.push(ball.x);
+    if (ball.trail.length > 600) ball.trail.shift();
+    ball.iter++;
+    if (Math.abs(g) < 0.012 && Math.abs(ball.v) < 0.0025) ball.calm++; else ball.calm = 0;
+    if (ball.calm > 45) { ball.running = false; ball.settled = true; settle(); return false; }
+    if (ball.iter > 6000) {
+      ball.running = false;
+      setStatus('⚠️ 迭代 ' + ball.iter + ' 次仍未收敛 —— 学习率太大，小球在来回震荡。试着调低 η，或重置后再试。', 'warn');
+      return false;
+    }
+    return true;
+  }
+  function advance(dt) {
+    if (!ball || !ball.running) return;
+    var n = Math.max(1, Math.round(dt * STEPS_PER_SEC));
+    for (var i = 0; i < n; i++) if (!stepOnce()) break;
+  }
+
+  /* ---------- 绘制 ---------- */
+  var FONT = '12px "PingFang SC","Microsoft YaHei",system-ui,sans-serif';
+  function haloText(t, x, y, fill, font, align) {
+    ctx.font = font || FONT; ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineJoin = 'round';
+    ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+  }
+  function draw(now) {
+    var i, x, px, py;
+    ctx.clearRect(0, 0, W, H);
+
+    /* 网格与坐标轴刻度 */
+    ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (var k = 0; k <= 4; k++) {
+      py = yToPx(yBot + (yTop - yBot) * k / 4);
+      ctx.strokeStyle = 'rgba(15,23,42,.055)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText((yBot + (yTop - yBot) * k / 4).toFixed(1), M.l - 8, py);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (x = 0; x <= 10; x += 2) {
+      px = xToPx(x);
+      ctx.strokeStyle = 'rgba(15,23,42,.06)';
+      ctx.beginPath(); ctx.moveTo(px, H - M.b); ctx.lineTo(px, H - M.b + 4); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(String(x), px, H - M.b + 7);
+    }
+    haloText('参数 x →', W - M.r, H - 12, '#94a3b8', '11px sans-serif', 'right');
+    ctx.save(); ctx.translate(14, M.t + plotH / 2); ctx.rotate(-Math.PI / 2);
+    haloText('← 损失 f(x)', 0, 0, '#94a3b8', '11px sans-serif', 'center'); ctx.restore();
+
+    /* 曲线下方的填充（地形） */
+    var N = 300;
+    ctx.beginPath();
+    for (i = 0; i <= N; i++) {
+      x = XMIN + (XMAX - XMIN) * i / N; px = xToPx(x); py = yToPx(f(x));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.lineTo(xToPx(XMAX), H - M.b); ctx.lineTo(xToPx(XMIN), H - M.b); ctx.closePath();
+    var fg = ctx.createLinearGradient(0, M.t, 0, H - M.b);
+    fg.addColorStop(0, 'rgba(99,102,241,.20)'); fg.addColorStop(1, 'rgba(99,102,241,.02)');
+    ctx.fillStyle = fg; ctx.fill();
+
+    /* 曲线 */
+    ctx.beginPath();
+    for (i = 0; i <= N; i++) {
+      x = XMIN + (XMAX - XMIN) * i / N; px = xToPx(x); py = yToPx(f(x));
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    var cg = ctx.createLinearGradient(M.l, 0, W - M.r, 0);
+    cg.addColorStop(0, '#6366f1'); cg.addColorStop(1, '#8b5cf6');
+    ctx.strokeStyle = cg; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.stroke();
+
+    /* 极值点标记 */
+    minima.forEach(function (m) {
+      px = xToPx(m.x); py = yToPx(m.y);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = m.isGlobal ? 'rgba(16,185,129,.45)' : 'rgba(245,158,11,.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(px, py + 10); ctx.lineTo(px, H - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      if (m.isGlobal) {
+        var rr = 13 + 3.5 * Math.sin((now || 0) / 260);
+        ctx.beginPath(); ctx.arc(px, py, rr, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(16,185,129,.4)'; ctx.lineWidth = 2; ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(px, py, m.isGlobal ? 8 : 7, 0, Math.PI * 2);
+      ctx.fillStyle = m.isGlobal ? '#10b981' : '#f59e0b'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+      haloText(m.label, px, py - 20, m.isGlobal ? '#047857' : '#b45309', 'bold 12px "PingFang SC","Microsoft YaHei",sans-serif');
+      haloText('f ≈ ' + m.y.toFixed(2), px, py + 24, '#64748b', '10.5px ui-monospace,Menlo,monospace');
+    });
+
+    /* 小球与轨迹 */
+    if (ball) {
+      var n = ball.trail.length;
+      for (i = 0; i < n; i++) {
+        var t = ball.trail[i], a = (i + 1) / n;
+        ctx.beginPath(); ctx.arc(xToPx(t), yToPx(f(t)), 1 + 2.2 * a, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(239,68,68,' + (0.42 * a).toFixed(3) + ')'; ctx.fill();
+      }
+      var bx = xToPx(ball.x), by = yToPx(f(ball.x));
+
+      if (ball.running) {   /* 最陡下坡方向箭头 */
+        var g = grad(ball.x);
+        if (Math.abs(g) > 0.02) {
+          var dir = -Math.sign(g), len = Math.min(46, 10 + Math.abs(g) * 70);
+          var x1 = bx + dir * 13, x2 = bx + dir * (13 + len);
+          ctx.strokeStyle = 'rgba(239,68,68,.7)'; ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(x1, by); ctx.lineTo(x2, by); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x2 + dir * 7, by);
+          ctx.lineTo(x2, by - 4.5); ctx.lineTo(x2, by + 4.5); ctx.closePath();
+          ctx.fillStyle = 'rgba(239,68,68,.7)'; ctx.fill();
+        }
+      }
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(239,68,68,.8)'; ctx.shadowBlur = 16;
+      var bg = ctx.createRadialGradient(bx - 3, by - 3, 1, bx, by, 9);
+      bg.addColorStop(0, '#fecaca'); bg.addColorStop(1, '#ef4444');
+      ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI * 2); ctx.fillStyle = bg; ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.arc(bx, by, 9, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+
+      if (ball.settled) {
+        haloText(ball.win ? '🎉 找到了！' : '😵 卡住了…', bx, by - 22, ball.win ? '#047857' : '#c2410c', 'bold 14px "PingFang SC","Microsoft YaHei",sans-serif');
+      }
+    }
+
+    /* 图例（右上角） */
+    var legend = [['#f59e0b', '局部最优'], ['#10b981', '全局最优'], ['#ef4444', '小球']];
+    ctx.font = FONT; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    var lx = W - M.r - 10;
+    for (i = legend.length - 1; i >= 0; i--) {
+      var lt = legend[i][1];
+      lx -= ctx.measureText(lt).width;
+      ctx.fillStyle = '#64748b'; ctx.fillText(lt, lx, M.t - 16);
+      lx -= 16;
+      ctx.beginPath(); ctx.arc(lx + 6, M.t - 16, 5, 0, Math.PI * 2);
+      ctx.fillStyle = legend[i][0]; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+      lx -= 14;
+    }
+
+    refreshStats();
+  }
+
+  /* ---------- DOM 实时读数（避免压到图上） ---------- */
+  var lastStats = '';
+  function refreshStats() {
+    if (!ball) {
+      if (lastStats !== 'idle') { statsEl.innerHTML = 'x = — &nbsp;·&nbsp; f(x) = — &nbsp;·&nbsp; |∇f| = — &nbsp;·&nbsp; iter = 0'; lastStats = 'idle'; }
+      return;
+    }
+    var s = 'x = <b>' + ball.x.toFixed(3) + '</b> &nbsp;·&nbsp; f(x) = <b>' + f(ball.x).toFixed(3) +
+            '</b> &nbsp;·&nbsp; |∇f| = <b>' + Math.abs(grad(ball.x)).toFixed(3) +
+            '</b> &nbsp;·&nbsp; iter = <b>' + ball.iter + '</b>';
+    if (s !== lastStats) { statsEl.innerHTML = s; lastStats = s; }
+  }
+
+  /* ---------- 主循环：前台用 rAF，后台标签页用定时器兜底 ---------- */
+  var lastWall = performance.now();
+  function tick(now) {
+    var dt = Math.min(0.06, Math.max(0, (now - lastWall) / 1000));
+    lastWall = now;
+    if (!document.hidden) advance(dt);   // 前台：由 rAF 驱动
+    draw(now);
+    requestAnimationFrame(tick);
+  }
+  setInterval(function () {              // 后台：rAF 被暂停时的兜底推进
+    if (!document.hidden) return;
+    var now = performance.now();
+    var dt = Math.min(0.3, Math.max(0, (now - lastWall) / 1000));
+    lastWall = now;
+    advance(dt);
+    refreshStats();
+  }, 100);
+
+  /* ---------- 交互 ---------- */
+  cv.addEventListener('pointerdown', function (e) {
+    var r = cv.getBoundingClientRect();
+    var x = pxToX(e.clientX - r.left);
+    if (x < XMIN || x > XMAX) return;
+    userInteracted = true;
+    place(x);
+  });
+  function wire(id, fn) { document.getElementById(id).addEventListener('click', fn); }
+  wire('btnLeft', function () { userInteracted = true; place(0.3, '小球从最左端出发 —— 前方就是第一个坑……'); });
+  wire('btnRight', function () { userInteracted = true; place(9.6, '小球从最右端出发 —— 看它会停在哪里？'); });
+  wire('btnRandom', function () {
+    userInteracted = true;
+    place(+(XMIN + 0.25 + Math.random() * (XMAX - XMIN - 0.5)).toFixed(2), '🎲 随机重启：换个起点再试一次！');
+  });
+  wire('btnKick', function () {
+    userInteracted = true;
+    if (!ball) place(XMIN + Math.random() * (XMAX - XMIN), '先随机放了一个小球……');
+    momEl.checked = true; momentum = true;            // 扰动配合动量才踢得动
+    ball.v += (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random() * 1.4);
+    ball.running = true; ball.settled = false; ball.win = undefined; ball.calm = 0;
+    setStatus('💥 被猛踢了一脚！小球带着惯性冲出坑底……', 'run');
+  });
+  wire('btnReset', function () {
+    userInteracted = true;
+    ball = null; lastStats = '';
+    refreshStats();
+    setStatus('已重置。点击地形任意位置放置小球。', 'idle');
+  });
+  lrEl.addEventListener('input', function () { lr = +lrEl.value; lrVal.textContent = (+lrEl.value).toFixed(2); });
+  momEl.addEventListener('change', function () { momentum = momEl.checked; });
+
+  var rT;
+  window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(layout, 120); });
+
+  /* ---------- 启动：若用户尚未操作，自动演示一次 ---------- */
+  layout();
+  requestAnimationFrame(tick);
+  setTimeout(function () {
+    if (!userInteracted) place(0.3, '自动演示：小球从左端出发，沿着最陡的下坡方向滚动……');
+  }, 700);
+})();
+</script>
+</body>
+</html>

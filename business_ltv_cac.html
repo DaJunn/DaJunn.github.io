@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>单位经济学 · LTV vs CAC 仪表盘</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background:
+      radial-gradient(1000px 500px at 15% -10%, rgba(16,185,129,.13), transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(239,68,68,.09), transparent 55%),
+      #f5f6fa;
+    color: #1e293b; padding: 32px 16px 48px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 22px; }
+  h1 { font-size: clamp(24px, 4.2vw, 32px); background: linear-gradient(90deg,#059669,#10b981 50%,#f43f5e); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { margin-top: 8px; color: #64748b; font-size: 15px; }
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 6px 24px rgba(15,23,42,.07); padding: 18px; margin-bottom: 18px; }
+  canvas { width: 100%; height: clamp(280px, 42vw, 400px); display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { flex: 1 1 auto; min-width: 110px; background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 8px 12px; text-align: center; }
+  .chip .k { font-size: 12px; color: #64748b; }
+  .chip .v { font-size: 17px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .chip.g .v { color: #059669; } .chip.a .v { color: #d97706; } .chip.r .v { color: #e11d48; }
+  .verdict { margin-top: 12px; padding: 12px 16px; border-radius: 12px; font-size: 14.5px; line-height: 1.7; transition: all .2s; }
+  .verdict.g { background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; }
+  .verdict.a { background:#fffbeb; color:#92400e; border:1px solid #fde68a; }
+  .verdict.r { background:#fff1f2; color:#9f1239; border:1px solid #fecdd3; }
+  .controls { margin-top: 14px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px 22px; }
+  .ctl label { font-size: 13.5px; color: #475569; display: flex; flex-direction: column; gap: 6px; }
+  .ctl .row { display: flex; justify-content: space-between; }
+  .ctl b { color: #10b981; font-variant-numeric: tabular-nums; }
+  .ctl input { width: 100%; accent-color: #10b981; }
+  .presets { margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .presets button { border: 1px solid #e2e8f0; background: #f8fafc; color: #334155; padding: 7px 13px; border-radius: 10px; font-size: 13.5px; cursor: pointer; font-family: inherit; transition: all .15s; }
+  .presets button:hover { background: #ecfdf5; border-color: #6ee7b7; transform: translateY(-1px); }
+  .formula { font-size: 14px; line-height: 1.9; color: #475569; }
+  .formula b { color: #1e293b; }
+  .formula code { background:#f1f5f9; padding: 1px 7px; border-radius: 6px; color: #047857; font-size: 13.5px; }
+  .tips { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap: 10px; margin-top: 14px; }
+  .tips > div { background: #f8fafc; border: 1px solid #eef2f7; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: #475569; }
+  .tips b { color: #1e293b; }
+  footer { text-align: center; color: #94a3b8; font-size: 13px; margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>单位经济学：LTV vs CAC</h1>
+    <p class="sub">每获得一个客户花多少钱（CAC），这个客户一辈子能贡献多少毛利（LTV）—— 决定一门生意能不能成立。</p>
+  </header>
+
+  <section class="card">
+    <canvas id="cv"></canvas>
+    <div class="chips" id="chips"></div>
+    <div class="verdict" id="verdict">拖动滑杆，看看这笔生意到底赚不赚钱。</div>
+    <div class="controls">
+      <div class="ctl"><label><span class="row"><span>单客月收入（客单价/月）</span><b id="v_arpu"></b></span><input type="range" id="arpu" min="5" max="2000" step="5" value="200"></label></div>
+      <div class="ctl"><label><span class="row"><span>毛利率</span><b id="v_margin"></b></span><input type="range" id="margin" min="10" max="90" step="1" value="75"></label></div>
+      <div class="ctl"><label><span class="row"><span>月流失率（留存的反面）</span><b id="v_churn"></b></span><input type="range" id="churn" min="0.5" max="40" step="0.5" value="3"></label></div>
+      <div class="ctl"><label><span class="row"><span>获客成本 CAC（每个客户）</span><b id="v_cac"></b></span><input type="range" id="cac" min="10" max="3000" step="10" value="800"></label></div>
+    </div>
+    <div class="presets" id="presets">
+      <button data-preset="saas">📦 典型 SaaS</button>
+      <button data-preset="ecom">🛒 挣扎的电商</button>
+      <button data-preset="burn">🔥 烧钱扩张期</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="formula">
+      <b>计算公式（简化版）</b><br>
+      <code>单客月毛利 = 客单价 × 毛利率</code>　
+      <code>平均生命周期 L = 1 ÷ 月流失率</code>　
+      <code>LTV = 单客月毛利 × L</code><br><br>
+      <b>判读标准（经验法则）：</b>　🟢 <b>LTV/CAC ≥ 3 且回本周期 ≤ 12 个月</b> → 健康的单位经济；　🟡 1.5 ~ 3 → 勉强，烧钱换增长要克制；　🔴 &lt; 1.5 → 每获一个客都在亏钱，增长越快死得越快。<br>
+      <b>回本周期</b> = CAC ÷ 单客月毛利：钱花出去后，要多少个月才能从这个客户身上赚回来。
+    </div>
+    <div class="tips">
+      <div><b>📈 想提升 LTV：</b>涨客单价（但别涨过流失）、提升毛利率（供应链/规模）、降低流失率（留存为王——留存 +5% 往往比拉新 +20% 更值钱）。</div>
+      <div><b>📉 想降低 CAC：</b>口碑/转介绍（最便宜）、内容获客、提高广告转化率；警惕“补贴买量”——补贴停，客户就走。</div>
+      <div><b>⚠️ 藏在数字背后的坑：</b>LTV 模型要按<b>毛利</b>算而不是营收；新客户回本前公司要先垫钱，所以 CAC 高还要看公司的“现金跑道”撑不撑得住。</div>
+    </div>
+  </section>
+
+  <footer>拖动四个滑杆 → 观察累计毛利曲线何时越过 CAC 线（回本点）→ 判断这生意成不成立。</footer>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var chipsEl = document.getElementById('chips');
+  var verdictEl = document.getElementById('verdict');
+  var els = {};
+  ['arpu', 'margin', 'churn', 'cac'].forEach(function (id) { els[id] = document.getElementById(id); });
+  var vls = {};
+  ['arpu', 'margin', 'churn', 'cac'].forEach(function (id) { vls[id] = document.getElementById('v_' + id); });
+
+  var M = { l: 60, r: 24, t: 30, b: 44 };
+  var W = 800, H = 400, plotW = 700, plotH = 320;
+
+  function fmtMoney(v) {
+    if (!isFinite(v)) return '∞';
+    if (v >= 10000) return (v / 10000).toFixed(1) + '万';
+    return Math.round(v).toLocaleString('zh-CN');
+  }
+  function fmtRatio(v) { return v.toFixed(2); }
+  function fmtMonths(v) { return isFinite(v) ? v.toFixed(1) : '∞'; }
+
+  function params() {
+    var arpu = +els.arpu.value;
+    var margin = +els.margin.value / 100;
+    var churn = +els.churn.value / 100;
+    var cac = +els.cac.value;
+    var moGP = arpu * margin;
+    var life = churn > 0 ? 1 / churn : Infinity;
+    var ltv = moGP * life;
+    var ratio = cac > 0 ? ltv / cac : Infinity;
+    var payback = moGP > 0 ? cac / moGP : Infinity;
+    return { arpu: arpu, margin: margin, churn: churn, cac: cac, moGP: moGP, life: life, ltv: ltv, ratio: ratio, payback: payback };
+  }
+
+  function verdict(p) {
+    var cls, html;
+    if (p.moGP <= 0) { cls = 'r'; html = '❌ 毛利率为 0，白干。'; }
+    else if (p.payback > p.life) {
+      cls = 'r';
+      html = '🔴 <b>永远赚不回本</b>：回本周期 ' + fmtMonths(p.payback) + ' 个月 &gt; 客户平均生命周期 ' + fmtMonths(p.life) + ' 个月 —— 客户在替你回本之前就流失了。此时 LTV(' + fmtMoney(p.ltv) + ') &lt; CAC(' + fmtMoney(p.cac) + ')，<b>每获得一个新客户都在净亏钱</b>，增长越快、亏得越多。建议：提高留存或客单价，或砍掉买量。';
+    } else if (p.ratio >= 3 && p.payback <= 12) {
+      cls = 'g';
+      html = '🟢 <b>健康的单位经济</b>：LTV/CAC = ' + fmtRatio(p.ratio) + '（≥3 ✓），回本周期约 ' + fmtMonths(p.payback) + ' 个月（≤12 ✓）。理论上每一块钱获客投入能换回约 ' + fmtRatio(p.ratio) + ' 块钱毛利 —— 可以放心规模化，把省下来的钱投回增长。';
+    } else if (p.ratio >= 1.5) {
+      cls = 'a';
+      var slow = p.payback > 12 ? ' 回本偏慢（' + fmtMonths(p.payback) + ' 个月），意味着现金流压力大。' : '';
+      html = '🟡 <b>勉强及格</b>：LTV/CAC = ' + fmtRatio(p.ratio) + '（1.5~3）。' + slow + '增长可以继续，但要盯着指标别恶化；优先提升留存或毛利，把比值推向 3。';
+    } else {
+      cls = 'r';
+      html = '🔴 <b>烧钱陷阱</b>：LTV/CAC 只有 ' + fmtRatio(p.ratio) + '（&lt;1.5）。获客成本吃掉太多价值，扩张基本是在“花钱买客户再亏着服务他”。先修单位经济（留存/毛利/CAC），再谈增长。';
+    }
+    return { cls: cls, html: html };
+  }
+
+  function layout() {
+    var dpr = window.devicePixelRatio || 1;
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    plotW = W - M.l - M.r; plotH = H - M.t - M.b;
+    draw();
+  }
+
+  function halo(t, x, y, fill, font, align) {
+    ctx.font = font || '12px "PingFang SC","Microsoft YaHei",sans-serif';
+    ctx.textAlign = align || 'center'; ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3.5; ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineJoin = 'round';
+    ctx.strokeText(t, x, y); ctx.fillStyle = fill; ctx.fillText(t, x, y);
+  }
+
+  function draw() {
+    var p = params();
+    ctx.clearRect(0, 0, W, H);
+
+    var Mmax = Math.max(12, Math.ceil((isFinite(p.life) ? p.life : 24) * 1.25));
+    if (isFinite(p.payback)) Mmax = Math.max(Mmax, Math.ceil(p.payback) + 4);
+    Mmax = Math.min(Mmax, 120);
+    var yTop = Math.max(p.ltv, p.cac) * 1.3;
+    if (yTop <= 0) yTop = 1;
+
+    function X(m) { return M.l + m / Mmax * plotW; }
+    function Y(v) { return M.t + (1 - v / yTop) * plotH; }
+
+    /* 网格 */
+    ctx.font = '10px ui-monospace,Menlo,monospace'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    for (var k = 0; k <= 4; k++) {
+      var v = yTop * k / 4, py = Y(v);
+      ctx.strokeStyle = 'rgba(15,23,42,.055)';
+      ctx.beginPath(); ctx.moveTo(M.l, py); ctx.lineTo(W - M.r, py); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(fmtMoney(v), M.l - 8, py);
+    }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    for (var xm = 0; xm <= Mmax; xm += Math.max(1, Math.round(Mmax / 10))) {
+      var px = X(xm);
+      ctx.strokeStyle = 'rgba(15,23,42,.05)';
+      ctx.beginPath(); ctx.moveTo(px, H - M.b); ctx.lineTo(px, H - M.b + 4); ctx.stroke();
+      ctx.fillStyle = '#94a3b8'; ctx.fillText(xm + '月', px, H - M.b + 7);
+    }
+    halo('累计毛利/成本（元） →', W - M.r, H - 12, '#94a3b8', '11px sans-serif', 'right');
+    ctx.save(); ctx.translate(13, M.t + plotH / 2); ctx.rotate(-Math.PI / 2);
+    halo('金额 →', 0, 0, '#94a3b8', '11px sans-serif', 'center'); ctx.restore();
+
+    /* 流失区（生命周期之后） */
+    if (isFinite(p.life) && p.life < Mmax) {
+      var lx = X(p.life);
+      ctx.fillStyle = 'rgba(245,158,11,.08)';
+      ctx.fillRect(lx, M.t, W - M.r - lx, plotH);
+      ctx.setLineDash([5, 4]); ctx.strokeStyle = 'rgba(245,158,11,.5)';
+      ctx.beginPath(); ctx.moveTo(lx, M.t); ctx.lineTo(lx, M.t + plotH); ctx.stroke();
+      ctx.setLineDash([]);
+      halo('平均生命周期 L=' + p.life.toFixed(1) + '月', Math.min(lx + plotW * 0.02, W - M.r), M.t + 14, '#b45309', '11px sans-serif', 'left');
+    }
+
+    /* 单客户累计毛利曲线（达到 L 后归平） */
+    ctx.beginPath();
+    var pts = [];
+    var Mdraw = Math.min(Mmax, isFinite(p.life) ? p.life : Mmax);
+    for (var m = 0; m <= Mdraw; m += 0.1) pts.push([X(m), Y(Math.min(m * p.moGP, p.ltv))]);
+    pts.push([X(Mdraw), Y(p.ltv)]);
+    if (isFinite(p.life) && p.life < Mmax) {
+      pts.push([X(Math.max(p.life, 0) + 0.01), Y(p.ltv)]);
+      pts.push([X(Mmax), Y(p.ltv)]);
+    }
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#10b981'; ctx.lineJoin = 'round'; ctx.stroke();
+
+    /* CAC 水平线 */
+    var cy = Y(p.cac);
+    ctx.setLineDash([7, 5]); ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(M.l, cy); ctx.lineTo(W - M.r, cy); ctx.stroke();
+    ctx.setLineDash([]);
+    halo('CAC = ' + fmtMoney(p.cac), M.l + 6, cy - 12, '#be123c', 'bold 12px sans-serif', 'left');
+
+    /* 回本点 */
+    var pb = Math.ceil(p.payback);
+    if (isFinite(p.payback) && p.payback <= Mmax) {
+      var px2 = X(Math.min(pb, Mmax)), py2 = Y(Math.min(pb * p.moGP, p.ltv));
+      ctx.strokeStyle = 'rgba(16,185,129,.5)'; ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(px2, M.t); ctx.lineTo(px2, H - M.b); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.arc(px2, py2, 6, 0, Math.PI * 2);
+      ctx.fillStyle = '#10b981'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      halo('回本点 · 第 ' + pb + ' 个月', px2, Math.min(py2 - 16, M.t + plotH - 14), '#047857', 'bold 12px sans-serif');
+    } else if (isFinite(p.payback)) {
+      halo('✗ 超出生命周期，永远回不了本', X(Mmax * 0.45), Y(p.cac) - 16, '#be123c', 'bold 13px sans-serif');
+    }
+
+    /* LTV 标注 */
+    if (isFinite(p.life)) {
+      var lv = Y(p.ltv), lxp = X(Math.min(p.life, Mdraw));
+      ctx.beginPath(); ctx.arc(lxp, lv, 5, 0, Math.PI * 2);
+      ctx.fillStyle = '#059669'; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      halo('LTV ≈ ' + fmtMoney(p.ltv), X(Mmax) - 6, Y(p.ltv), '#047857', 'bold 12px sans-serif', 'right');
+    }
+
+    ctx.strokeStyle = 'rgba(15,23,42,.15)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(M.l, Y(0)); ctx.lineTo(W - M.r, Y(0)); ctx.stroke();
+  }
+
+  function render() {
+    var p = params();
+    vls.arpu.textContent = '¥' + fmtMoney(p.arpu);
+    vls.margin.textContent = Math.round(p.margin * 100) + '%';
+    vls.churn.textContent = (+els.churn.value).toFixed(1) + '%/月';
+    vls.cac.textContent = '¥' + fmtMoney(p.cac);
+    var ratioColor = p.ratio >= 3 ? 'g' : (p.ratio >= 1.5 ? 'a' : 'r');
+    var payColor = p.payback <= 12 ? 'g' : (p.payback <= p.life ? 'a' : 'r');
+    chipsEl.innerHTML =
+      '<div class="chip"><div class="k">单客月毛利</div><div class="v">¥' + fmtMoney(p.moGP) + '</div></div>' +
+      '<div class="chip"><div class="k">平均生命周期</div><div class="v">' + fmtMonths(p.life) + ' 月</div></div>' +
+      '<div class="chip ' + ratioColor + '"><div class="k">LTV</div><div class="v">¥' + fmtMoney(p.ltv) + '</div></div>' +
+      '<div class="chip r"><div class="k">CAC</div><div class="v">¥' + fmtMoney(p.cac) + '</div></div>' +
+      '<div class="chip ' + ratioColor + '"><div class="k">LTV / CAC</div><div class="v">' + fmtRatio(p.ratio) + '</div></div>' +
+      '<div class="chip ' + payColor + '"><div class="k">回本周期</div><div class="v">' + fmtMonths(p.payback) + ' 月</div></div>';
+    var v = verdict(p);
+    verdictEl.className = 'verdict ' + v.cls;
+    verdictEl.innerHTML = v.html;
+    draw();
+  }
+
+  var presets = {
+    saas: { arpu: 200, margin: 75, churn: 3, cac: 800 },
+    ecom: { arpu: 55, margin: 30, churn: 12, cac: 260 },
+    burn: { arpu: 90, margin: 40, churn: 6, cac: 350 }
+  };
+  document.getElementById('presets').addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var pr = presets[btn.dataset.preset];
+    if (!pr) return;
+    els.arpu.value = pr.arpu; els.margin.value = pr.margin; els.churn.value = pr.churn; els.cac.value = pr.cac;
+    render();
+  });
+
+  ['arpu', 'margin', 'churn', 'cac'].forEach(function (id) {
+    els[id].addEventListener('input', render);
+  });
+  var rT;
+  window.addEventListener('resize', function () { clearTimeout(rT); rT = setTimeout(layout, 120); });
+
+  layout();
+  render();
+})();
+</script>
+</body>
+</html>
