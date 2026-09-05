@@ -4,3 +4,7 @@ life_sim/
 
 # 系统文件
 .DS_Store
+
+# 妙搭迁移：默认私藏，逐个审查后再放开
+miaoda/
+本地总目录.html

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Agent Html馆 导航页生成器。
 
-扫描本文件夹（含子目录）里所有 .html，自动生成本馆总目录 index.html。
+扫描本文件夹（含子目录）里所有 .html，一次生成两份目录：
+公开版 index.html（随仓库发布）与本地全量版《本地总目录.html》（含私藏）。
 以后新增页面：把 html 文件丢进本文件夹（或子文件夹），然后跑:
     python3 build_index.py
 不认识的文件也能收录：标题取 <title>，说明留空显示文件名。
@@ -13,7 +14,8 @@ import re
 import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(ROOT, "index.html")
+OUT = os.path.join(ROOT, "index.html")            # 公开版：只含非私藏页，随仓库发布
+OUT_LOCAL = os.path.join(ROOT, "本地总目录.html")  # 全量版：含私藏，仅本地浏览（gitignore）
 
 # 说明与标签：按文件名匹配（挪位置不影响）
 DESC = {
@@ -34,6 +36,7 @@ GROUPS = [  # (组名, 判定函数)
     ("思维模型", lambda rel, name: "/" not in rel and name == "local_vs_global_optimum.html"),
     ("人生推演台", lambda rel, name: rel.startswith("life_sim/") and name == "人生推演台.html"),
     ("草稿与测试", lambda rel, name: rel.startswith("life_sim/") and (name.startswith("draft_") or name == "test_engine.html")),
+    ("妙搭", lambda rel, name: rel.startswith("miaoda/")),
 ]
 FALLBACK_GROUP = "其他"
 TAGS = [  # (标签, 判定函数)——「私藏」态由 .gitignore 决定，不在这里写死
@@ -99,12 +102,17 @@ def main():
     pages = []
     for dirpath, _dirnames, filenames in os.walk(ROOT):
         for fn in filenames:
-            if not fn.lower().endswith(".html"):
+            if fn.startswith("._") or not fn.lower().endswith(".html"):
                 continue
             full = os.path.join(dirpath, fn)
             rel = os.path.relpath(full, ROOT)
             if rel == "index.html":
                 continue
+            if fn == "index.html":
+                # 妙搭导出的子目录里 index.html 与同名主文件重复；目录里只有它时才保留
+                sibs = [x for x in filenames if x.lower().endswith(".html") and not x.startswith("._")]
+                if len(sibs) > 1:
+                    continue
             rel_posix = rel.replace(os.sep, "/")
             try:
                 text = open(full, encoding="utf-8", errors="replace").read(200_000)
@@ -127,21 +135,20 @@ def main():
                 "date": time.strftime("%Y-%m-%d", time.localtime(stat.st_mtime)),
             })
 
-    total_kb = 0
-    latest = 0.0
-    for p in pages:
-        latest = max(latest, p["mtime"])
-    summary = f"{len(pages)} 个页面 · 最近更新 {time.strftime('%Y-%m-%d', time.localtime(latest))}"
+    latest = max((p["mtime"] for p in pages), default=time.time())
+    last = time.strftime("%Y-%m-%d", time.localtime(latest))
+    pub = [p for p in pages if p["tag"] != "🔒 私藏不上线"]
+    pub_latest = max((p["mtime"] for p in pub), default=time.time())
 
-    # 组顺序按 GROUPS 定义，未知组排最后；组内按标题
-    order = {g[0]: i for i, g in enumerate(GROUPS)}
-    groups = {}
-    for p in pages:
-        groups.setdefault(p["group"], []).append(p)
-    for items in groups.values():
-        items.sort(key=lambda p: p["title"])
+    def render_variant(items, out_path, summary, foot_note):
+        order = {g[0]: i for i, g in enumerate(GROUPS)}
+        groups = {}
+        for p in items:
+            groups.setdefault(p["group"], []).append(p)
+        for g_items in groups.values():
+            g_items.sort(key=lambda p: p["title"])
 
-    card_tpl = """\
+        card_tpl = """\
       <a class="card" href="{rel}" target="_blank" data-key="{key}">
         <div class="card-top"><span class="tag tag-{tagcls}">{tag}</span><span class="date">{date}</span></div>
         <h3>{title}</h3>
@@ -149,23 +156,23 @@ def main():
         <div class="meta">{name} · {size}</div>
       </a>"""
 
-    sections = []
-    for gname in sorted(groups, key=lambda g: order.get(g, 99)):
-        cards = "".join(
-            card_tpl.format(
-                rel=html.escape(p["rel"], quote=True),
-                key=html.escape((p["title"] + " " + p["desc"] + " " + p["name"]).lower(), quote=True),
-                tagcls={"草稿": "draft", "测试": "test", "🔒 私藏不上线": "private"}.get(p["tag"], "final"),
-                tag=p["tag"],
-                date=p["date"],
-                title=html.escape(p["title"]),
-                desc=html.escape(p["desc"]),
-                name=html.escape(p["name"]),
-                size=p["size"],
+        sections = []
+        for gname in sorted(groups, key=lambda g: order.get(g, 99)):
+            cards = "".join(
+                card_tpl.format(
+                    rel=html.escape(p["rel"], quote=True),
+                    key=html.escape((p["title"] + " " + p["desc"] + " " + p["name"]).lower(), quote=True),
+                    tagcls={"草稿": "draft", "测试": "test", "🔒 私藏不上线": "private"}.get(p["tag"], "final"),
+                    tag=p["tag"],
+                    date=p["date"],
+                    title=html.escape(p["title"]),
+                    desc=html.escape(p["desc"]),
+                    name=html.escape(p["name"]),
+                    size=p["size"],
+                )
+                for p in groups[gname]
             )
-            for p in groups[gname]
-        )
-        sections.append(f"""\
+            sections.append(f"""\
     <section>
       <h2><span class="dot"></span>{html.escape(gname)}<span class="count">{len(groups[gname])}</span></h2>
       <div class="grid">
@@ -173,7 +180,7 @@ def main():
       </div>
     </section>""")
 
-    page = f"""\
+        page = f"""\
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -230,7 +237,7 @@ def main():
 {chr(10).join(sections)}
   <footer>
     新增页面：把 <code>.html</code> 丢进本文件夹 → 跑 <code>python3 build_index.py</code> 重新生成目录 → 让 Agent 推送上线。<br>
-    本页在 GitHub Pages 上就是网站首页；本地双击也能直接用。
+    {foot_note}
   </footer>
 </div>
 <script>
@@ -246,9 +253,21 @@ def main():
 </body>
 </html>
 """
-    with open(OUT, "w", encoding="utf-8") as f:
-        f.write(page)
-    print(f"已生成 {OUT}：{len(pages)} 个页面，{len(groups)} 个分组（{ '、'.join(groups) }）")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(page)
+        return len(items), len(groups)
+
+    n1, g1 = render_variant(
+        pub, OUT,
+        f"{len(pub)} 个公开页面 · 最近更新 {time.strftime('%Y-%m-%d', time.localtime(pub_latest))}",
+        "本页为公开版；私藏页面只收录在本地《本地总目录.html》。",
+    )
+    n2, g2 = render_variant(
+        pages, OUT_LOCAL,
+        f"全馆 {len(pages)} 页（公开 {len(pub)} · 私藏 {len(pages) - len(pub)}）· 最近更新 {last}",
+        "本页是本地全量目录；线上 index.html 只展示公开页面。",
+    )
+    print(f"已生成 {OUT}（公开 {n1} 页 / {g1} 组）+ {OUT_LOCAL}（全量 {n2} 页 / {g2} 组）")
 
 
 if __name__ == "__main__":
