@@ -6,7 +6,7 @@ Agent 生成的单文件 HTML 网页都住这里，`index.html` 是自动生成�
 
 - **新增页面**：把 `.html` 丢进本文件夹 → `python3 build_index.py` 重新生成目录 → 找 Agent 推送上线。
 - **本地打开**：直接双击 `index.html`，点卡片进入各页面。
-- **线上地址**：GitHub Pages 开通后回填到这里。
+- **线上地址**：https://dajunn.github.io/ （本仓库，推送 main 分支后约 1 分钟自动上线）
 
 ## 公开规则（重要）
 
